@@ -5,7 +5,7 @@ import { isValidHttpUrl } from "@/lib/setup-status";
 /**
  * Next.js middleware — handles security headers, CSRF, and Supabase session refresh.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const response = NextResponse.next();
 
   // ── Security Headers ──
