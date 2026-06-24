@@ -76,3 +76,27 @@ create policy "Public read source files"
   on storage.objects for select
   to public
   using (bucket_id = 'paper-sources');
+
+-- ── Subscriptions (Payment Plans) ──
+
+create table if not exists public.subscriptions (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references auth.users(id) on delete cascade unique,
+  plan_id text not null default 'free' check (plan_id in ('free', 'pro', 'ultra')),
+  payment_provider text check (payment_provider in ('razorpay', 'stripe', null)),
+  payment_id text,
+  order_id text,
+  stripe_subscription_id text,
+  status text not null default 'active' check (status in ('active', 'cancelled', 'expired', 'past_due')),
+  starts_at timestamptz,
+  expires_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.subscriptions enable row level security;
+
+drop policy if exists "Users can read own subscription" on public.subscriptions;
+create policy "Users can read own subscription"
+  on public.subscriptions for select
+  using (auth.uid() = user_id);
