@@ -159,6 +159,23 @@ export function LoginModal({ isOpen, onClose }: Props) {
     setLoading(true);
     try {
       const supabase = createBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user && user.is_anonymous) {
+        try {
+          const { error } = await supabase.auth.linkIdentity({
+            provider: "google",
+            options: {
+              redirectTo: `${location.origin}/auth/callback`,
+            }
+          });
+          if (error) throw error;
+          return;
+        } catch (linkErr) {
+          console.warn("Failed to link identity, falling back to sign in:", linkErr);
+        }
+      }
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
