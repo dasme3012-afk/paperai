@@ -230,11 +230,8 @@ export function LoginModal({ isOpen, onClose }: Props) {
         {view === "sign-in" && (
           <>
             <div className="text-center mb-6">
-              <div className="inline-flex items-center gap-2 mb-4">
-                <div className="h-8 w-8 rounded-lg bg-brand flex items-center justify-center">
-                  <Sparkles size={16} />
-                </div>
-                <span className="text-lg font-black tracking-tight">PaperAI</span>
+              <div className="inline-flex items-center mb-4 select-none">
+                <img src="/logo.png" alt="Textipe Logo" className="h-8 w-auto" />
               </div>
               <h1 className="text-2xl font-black">Welcome back</h1>
               <p className="mt-1 text-sm text-white/50">Sign in to your account</p>
@@ -299,11 +296,8 @@ export function LoginModal({ isOpen, onClose }: Props) {
         {view === "sign-up" && (
           <>
             <div className="text-center mb-6">
-              <div className="inline-flex items-center gap-2 mb-4">
-                <div className="h-8 w-8 rounded-lg bg-brand flex items-center justify-center">
-                  <Sparkles size={16} />
-                </div>
-                <span className="text-lg font-black tracking-tight">PaperAI</span>
+              <div className="inline-flex items-center mb-4 select-none">
+                <img src="/logo.png" alt="Textipe Logo" className="h-8 w-auto" />
               </div>
               <h1 className="text-2xl font-black">Create account</h1>
               <p className="mt-1 text-sm text-white/50">Start digitizing exam papers in seconds</p>

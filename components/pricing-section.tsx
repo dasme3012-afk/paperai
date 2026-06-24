@@ -168,7 +168,7 @@ export function PricingSection({ onLoginRequired }: PricingProps) {
             key: orderData.keyId,
             amount: orderData.amount,
             currency: orderData.currency,
-            name: "PaperAI",
+            name: "Textipe",
             description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan — Monthly`,
             order_id: orderData.orderId,
             handler: async (response: any) => {

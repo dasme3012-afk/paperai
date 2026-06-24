@@ -3,8 +3,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | PaperAI",
-  description: "Privacy Policy for PaperAI, the AI-powered OCR tool for educational documents.",
+  title: "Privacy Policy | Textipe",
+  description: "Privacy Policy for Textipe, the AI-powered OCR tool for educational documents.",
 };
 
 export default function PrivacyPage() {
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
         
         <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-p:text-white/80 prose-headings:font-bold prose-headings:tracking-tight prose-a:text-brand hover:prose-a:text-brand/80">
           <h2>1. Introduction</h2>
-          <p>Welcome to PaperAI. We respect your privacy and are committed to protecting your personal data. This privacy policy explains how we collect, use, and safeguard your information when you use our service.</p>
+          <p>Welcome to Textipe. We respect your privacy and are committed to protecting your personal data. This privacy policy explains how we collect, use, and safeguard your information when you use our service.</p>
 
           <h2>2. Data We Collect</h2>
           <p>We collect information that you provide directly to us:</p>
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
           </ul>
 
           <h2>3. How We Process Data</h2>
-          <p>Your documents are processed using third-party AI services to extract text and format it. By using PaperAI, you consent to your uploaded documents being temporarily sent to:</p>
+          <p>Your documents are processed using third-party AI services to extract text and format it. By using Textipe, you consent to your uploaded documents being temporarily sent to:</p>
           <ul>
             <li><strong>Google Gemini:</strong> Used for fast, single-pass OCR and formatting.</li>
             <li><strong>OpenAI:</strong> Used as a fallback or alternative formatting engine.</li>
@@ -53,13 +53,13 @@ export default function PrivacyPage() {
           </ul>
 
           <h2>7. Contact Us</h2>
-          <p>If you have any questions about this Privacy Policy, please contact us at <a href="mailto:support@paperai.app">support@paperai.app</a>.</p>
+          <p>If you have any questions about this Privacy Policy, please contact us at <a href="mailto:support@textipe.app">support@textipe.app</a>.</p>
         </div>
 
         <footer className="mt-16 pt-8 border-t border-white/10 text-sm text-white/40 flex flex-wrap gap-6">
           <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
           <Link href="/contact" className="hover:text-white transition-colors">Contact Us</Link>
-          <Link href="/about" className="hover:text-white transition-colors">About PaperAI</Link>
+          <Link href="/about" className="hover:text-white transition-colors">About Textipe</Link>
         </footer>
       </div>
     </div>

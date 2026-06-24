@@ -3,8 +3,8 @@ import Link from "next/link";
 import { ArrowLeft, Sparkles, BookOpen, Layers } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "About Us | PaperAI",
-  description: "Learn about the mission and technology behind PaperAI.",
+  title: "About Us | Textipe",
+  description: "Learn about the mission and technology behind Textipe.",
 };
 
 export default function AboutPage() {
@@ -15,14 +15,14 @@ export default function AboutPage() {
           <ArrowLeft size={16} /> Back to Home
         </Link>
         
-        <h1 className="text-3xl font-black mb-2 tracking-tight sm:text-4xl">About PaperAI</h1>
+        <h1 className="text-3xl font-black mb-2 tracking-tight sm:text-4xl">About Textipe</h1>
         <p className="text-white/60 mb-8 pb-8 border-b border-white/10">Empowering educators with AI.</p>
         
         <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-p:text-white/80 prose-headings:font-bold prose-headings:tracking-tight prose-a:text-brand hover:prose-a:text-brand/80">
           <h2>Our Mission</h2>
           <p className="text-lg">We believe teachers should spend their time teaching, not typing.</p>
           <p>
-            PaperAI was born out of a simple observation: educators worldwide spend countless hours manually retyping physical question papers, worksheets, and exams into digital formats. By combining cutting-edge Optical Character Recognition (OCR) with advanced Large Language Models (LLMs), PaperAI automates this tedious process, turning crumpled scans into perfect digital documents in seconds.
+            Textipe was born out of a simple observation: educators worldwide spend countless hours manually retyping physical question papers, worksheets, and exams into digital formats. By combining cutting-edge Optical Character Recognition (OCR) with advanced Large Language Models (LLMs), Textipe automates this tedious process, turning crumpled scans into perfect digital documents in seconds.
           </p>
 
           <div className="grid sm:grid-cols-3 gap-4 not-prose my-10">
@@ -44,7 +44,7 @@ export default function AboutPage() {
           </div>
 
           <h2>The Technology</h2>
-          <p>PaperAI is built on a modern, robust technology stack:</p>
+          <p>Textipe is built on a modern, robust technology stack:</p>
           <ul>
             <li><strong>Frontend:</strong> Next.js App Router, React, Tailwind CSS</li>
             <li><strong>Editor:</strong> TipTap (ProseMirror) for a WYSIWYG experience</li>
@@ -55,7 +55,7 @@ export default function AboutPage() {
           <div className="mt-12 text-center p-8 border border-brand/20 bg-brand/5 rounded-2xl">
             <h3 className="!mt-0 mb-4 text-xl font-bold">Ready to digitize your classroom?</h3>
             <Link href="/" className="inline-flex items-center justify-center rounded-md bg-brand px-6 py-3 font-bold text-white hover:bg-brand/90 transition-colors no-underline">
-              Try PaperAI Now
+              Try Textipe Now
             </Link>
           </div>
         </div>

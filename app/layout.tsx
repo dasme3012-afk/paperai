@@ -8,19 +8,19 @@ const inter = Inter({ subsets: ["latin"] });
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://paperai.app";
 
 export const metadata: Metadata = {
-  title: "PaperAI - Question Paper Digitizer",
+  title: "Textipe - Question Paper Digitizer",
   description: "AI-powered OCR, editing, and export for school question papers. Turn printed tests into editable DOCX and PDF files instantly.",
   metadataBase: new URL(APP_URL),
   openGraph: {
-    title: "PaperAI - Question Paper Digitizer",
+    title: "Textipe - Question Paper Digitizer",
     description: "AI-powered OCR, editing, and export for school question papers.",
     url: APP_URL,
-    siteName: "PaperAI",
+    siteName: "Textipe",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "PaperAI - Question Paper Digitizer",
+    title: "Textipe - Question Paper Digitizer",
     description: "AI-powered OCR, editing, and export for school question papers.",
   },
   icons: {
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "PaperAI",
+  name: "Textipe",
   operatingSystem: "Web",
   applicationCategory: "EducationalApplication",
   description: "AI-powered OCR tool to digitize and format physical question papers.",

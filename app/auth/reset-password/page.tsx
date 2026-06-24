@@ -80,11 +80,8 @@ export default function ResetPasswordPage() {
     <main className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center px-5">
       <section className="w-full max-w-md rounded-2xl border border-white/10 bg-[#151525] p-7 shadow-2xl">
         <div className="text-center mb-6">
-          <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="h-8 w-8 rounded-lg bg-brand flex items-center justify-center">
-              <Sparkles size={16} />
-            </div>
-            <span className="text-lg font-black tracking-tight">PaperAI</span>
+          <Link href="/" className="inline-flex items-center mb-4 select-none">
+            <img src="/logo.png" alt="Textipe Logo" className="h-8 w-auto" />
           </Link>
           <h1 className="text-2xl font-black">Set new password</h1>
           <p className="mt-1 text-sm text-white/50">Choose a strong password for your account</p>

@@ -2,16 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getEffectiveUser } from "@/lib/supabase/server";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-11-20.acacia" as any,
-});
-
-/**
- * POST /api/payments/stripe/create-checkout
- * Creates a Stripe Checkout Session and returns the URL.
- */
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return NextResponse.json({ error: "Stripe is not configured." }, { status: 500 });
+    }
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2024-11-20.acacia" as any,
+    });
     const user = await getEffectiveUser();
     if (!user?.email || user.email.includes("guest")) {
       return NextResponse.json({ error: "Please sign in to purchase a plan." }, { status: 401 });
@@ -23,9 +22,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing planId or priceId." }, { status: 400 });
     }
 
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return NextResponse.json({ error: "Stripe is not configured." }, { status: 500 });
-    }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 

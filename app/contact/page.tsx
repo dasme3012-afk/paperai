@@ -3,8 +3,8 @@ import Link from "next/link";
 import { ArrowLeft, Mail, Github, Twitter } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Contact Us | PaperAI",
-  description: "Get in touch with the PaperAI support team.",
+  title: "Contact Us | Textipe",
+  description: "Get in touch with the Textipe support team.",
 };
 
 export default function ContactPage() {
@@ -22,13 +22,13 @@ export default function ContactPage() {
           <div>
             <h2 className="text-xl font-bold mb-4 tracking-tight">Get in Touch</h2>
             <p className="text-white/80 leading-relaxed mb-6">
-              Have questions about PaperAI, need technical support, or want to report an issue? Reach out to us via email and we'll get back to you as soon as possible.
+              Have questions about Textipe, need technical support, or want to report an issue? Reach out to us via email and we'll get back to you as soon as possible.
             </p>
             
             <div className="space-y-4">
-              <a href="mailto:support@paperai.app" className="flex items-center gap-3 text-brand hover:underline font-medium">
+              <a href="mailto:support@textipe.app" className="flex items-center gap-3 text-brand hover:underline font-medium">
                 <Mail size={20} />
-                support@paperai.app
+                support@textipe.app
               </a>
               <a href="#" className="flex items-center gap-3 text-white/80 hover:text-white transition-colors">
                 <Github size={20} />
@@ -36,7 +36,7 @@ export default function ContactPage() {
               </a>
               <a href="#" className="flex items-center gap-3 text-white/80 hover:text-white transition-colors">
                 <Twitter size={20} />
-                @PaperAI_App
+                @Textipe_App
               </a>
             </div>
 
@@ -89,7 +89,7 @@ export default function ContactPage() {
         <footer className="mt-16 pt-8 border-t border-white/10 text-sm text-white/40 flex flex-wrap gap-6">
           <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
           <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
-          <Link href="/about" className="hover:text-white transition-colors">About PaperAI</Link>
+          <Link href="/about" className="hover:text-white transition-colors">About Textipe</Link>
         </footer>
       </div>
     </div>

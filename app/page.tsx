@@ -46,12 +46,9 @@ export default function HomePage() {
     <main className="min-h-screen bg-[#0a0a0f] text-white">
       {/* Nav */}
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-brand flex items-center justify-center">
-            <Sparkles size={16} className="text-white" />
-          </div>
-          <span className="text-lg font-black tracking-tight">PaperAI</span>
-        </div>
+        <Link href="/" className="flex items-center select-none">
+          <img src="/logo.png" alt="Textipe Logo" className="h-7 w-auto" />
+        </Link>
         <div className="flex items-center gap-3 text-sm">
           {user ? (
             <>
@@ -115,7 +112,7 @@ export default function HomePage() {
       <footer className="border-t border-white/5 py-10">
         <div className="mx-auto max-w-6xl px-5 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-sm text-white/30">
-            © 2025 PaperAI · Built for educators
+            © 2025 Textipe · Built for educators
           </div>
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-white/40">
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
