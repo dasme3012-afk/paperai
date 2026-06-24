@@ -6,6 +6,8 @@ import { Clock, Download, FileText, MoreVertical, Plus, Trash2 } from "lucide-re
 import { toast } from "sonner";
 import type { PaperProject } from "@/lib/types";
 
+import { createBrowserClient } from "@/lib/supabase/client";
+
 type DownloadRow = {
   id: string;
   project_id: string;
@@ -20,14 +22,28 @@ export function DashboardClient() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/projects")
-        .then((response) => (response.ok ? response.json() : { projects: [] }))
-        .then((data) => setProjects(data.projects ?? [])),
-      fetch("/api/downloads")
-        .then((response) => (response.ok ? response.json() : { downloads: [] }))
-        .then((data) => setDownloads(data.downloads ?? []))
-    ]).finally(() => setLoading(false));
+    async function initDashboard() {
+      try {
+        const supabase = createBrowserClient();
+        const { data } = await supabase.auth.getUser();
+        if (!data.user) {
+          await supabase.auth.signInAnonymously();
+        }
+      } catch (err) {
+        console.warn("Auth check or anonymous login failed:", err);
+      } finally {
+        Promise.all([
+          fetch("/api/projects")
+            .then((response) => (response.ok ? response.json() : { projects: [] }))
+            .then((data) => setProjects(data.projects ?? [])),
+          fetch("/api/downloads")
+            .then((response) => (response.ok ? response.json() : { downloads: [] }))
+            .then((data) => setDownloads(data.downloads ?? []))
+        ]).finally(() => setLoading(false));
+      }
+    }
+
+    initDashboard();
   }, []);
 
   async function deleteProject(project: PaperProject) {

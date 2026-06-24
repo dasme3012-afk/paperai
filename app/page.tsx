@@ -27,6 +27,14 @@ export default function HomePage() {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
         setUser(data.user);
+      } else {
+        supabase.auth.signInAnonymously().then(({ data: anonData }) => {
+          if (anonData.user) {
+            setUser(anonData.user);
+          }
+        }).catch((err) => {
+          console.warn("Auto anonymous login failed:", err);
+        });
       }
     });
   }, []);

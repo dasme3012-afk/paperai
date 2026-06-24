@@ -5,7 +5,7 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur dark:border-white/10 dark:bg-[#101113]/90">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
-        <Link href="/dashboard" className="flex items-center select-none">
+        <Link href="/" className="flex items-center select-none">
           <img src="/logo.png" alt="Textipe Logo" className="h-7 w-auto" />
         </Link>
         <div className="flex items-center gap-2">

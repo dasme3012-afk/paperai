@@ -180,10 +180,23 @@ export function LoginModal({ isOpen, onClose }: Props) {
   }
 
   // ── Guest Login ──
-  function guestLogin() {
+  async function guestLogin() {
     toast.success("Logging in as Guest...");
-    onClose();
-    setTimeout(() => { window.location.href = "/dashboard"; }, 500);
+    setLoading(true);
+    try {
+      const supabase = createBrowserClient();
+      const { error } = await supabase.auth.signInAnonymously();
+      if (error) throw error;
+      toast.success("Guest session started!");
+      onClose();
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      console.warn("Anonymous sign in failed, using fallback client-side guest:", err);
+      onClose();
+      setTimeout(() => { window.location.href = "/dashboard"; }, 500);
+    } finally {
+      setLoading(false);
+    }
   }
 
   // ── Google Button Component ──

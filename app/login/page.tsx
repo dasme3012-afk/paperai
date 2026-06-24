@@ -126,9 +126,21 @@ export default function LoginPage() {
     }
   }
 
-  function guestLogin() {
+  async function guestLogin() {
     toast.success("Logging in as Guest...");
-    setTimeout(() => { window.location.href = "/dashboard"; }, 500);
+    setLoading(true);
+    try {
+      const supabase = createBrowserClient();
+      const { error } = await supabase.auth.signInAnonymously();
+      if (error) throw error;
+      toast.success("Guest session started!");
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      console.warn("Anonymous sign in failed, using fallback client-side guest:", err);
+      setTimeout(() => { window.location.href = "/dashboard"; }, 500);
+    } finally {
+      setLoading(false);
+    }
   }
 
   // ── Shared Components ──
