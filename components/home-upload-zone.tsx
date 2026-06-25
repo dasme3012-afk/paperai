@@ -109,53 +109,66 @@ export function HomeUploadZone() {
     setProgressMsg("Preparing files...");
 
     try {
-      // Expand PDFs to images and compress existing images client-side
       setProgressMsg("Compressing and reading pages...");
-      setProgress(15);
+      setProgress(10);
       const processedFiles = await processAndCompressFiles(files);
-
-      setProgressMsg("Uploading to AI engine...");
-      setProgress(30);
 
       const form = new FormData();
       form.set("title", title || files[0]?.name.replace(/\.[^.]+$/, "") || "Question paper");
       form.set("language", language);
       processedFiles.forEach((f) => form.append("files", f));
 
-      // Animate progress while waiting
-      timerRef.current = window.setInterval(() => {
-        setProgress((v) => {
-          if (v >= 88) return v;
-          if (v > 60) setProgressMsg("Formatting document...");
-          else if (v > 40) setProgressMsg("Running OCR...");
-          return v + 6;
-        });
-      }, 600);
-
       const res = await fetch("/api/process", { method: "POST", body: form });
-      window.clearInterval(timerRef.current);
-      setProgress(100);
-      setProgressMsg("Done!");
-
-      const data = await res.json();
 
       if (res.status === 401) {
         toast.error("Please sign in to process papers.");
+        setLoading(false);
         return;
       }
       if (!res.ok) {
-        toast.error(data.error ?? "Processing failed");
-        setProgress(0);
-        return;
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error ?? "Processing failed");
       }
 
-      // Inline — no navigation
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("Stream not supported");
+
+      const decoder = new TextDecoder();
+      let done = false;
+      let finalData: any = null;
+
+      while (!done) {
+        const { value, done: streamDone } = await reader.read();
+        done = streamDone;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.progress) setProgress(data.progress);
+                if (data.status) setProgressMsg(data.status);
+                if (data.pages) finalData = data;
+                if (data.error) throw new Error(data.error);
+              } catch (e: any) {
+                if (e.message && e.message !== "Unexpected end of JSON input") {
+                  throw e;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (!finalData) throw new Error("Did not receive complete data from server");
+
       const proj: PaperProject = {
-        id: data.projectId,
+        id: finalData.projectId,
         user_id: "guest",
         title: title || files[0]?.name.replace(/\.[^.]+$/, "") || "Question paper",
         language,
-        pages: data.pages,
+        pages: finalData.pages,
         status: "ready",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -166,7 +179,6 @@ export function HomeUploadZone() {
       toast.error(err instanceof Error ? err.message : "Upload failed");
       setProgress(0);
     } finally {
-      if (timerRef.current) window.clearInterval(timerRef.current);
       setLoading(false);
     }
   }

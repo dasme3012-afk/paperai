@@ -16,11 +16,9 @@ export async function POST(request: Request) {
   const startTime = Date.now();
 
   try {
-    // Rate limiting: 10 requests/minute per IP
     const ip = getClientIp(request);
     const rl = rateLimit(`process:${ip}`, 10, 60_000);
     if (!rl.success) {
-      log.warn("Rate limit exceeded on /api/process", { ip, remaining: rl.remaining });
       return NextResponse.json(
         { error: "Rate limit exceeded. Please wait before trying again." },
         { status: 429, headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) } }
@@ -32,7 +30,6 @@ export async function POST(request: Request) {
     }
 
     const user = await getEffectiveUser();
-
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -46,7 +43,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Upload at least one image or PDF." }, { status: 400 });
     }
 
-    // Validate each uploaded file
     for (const file of files) {
       const validation = validateUploadedFile(file);
       if (!validation.valid) {
@@ -57,115 +53,133 @@ export async function POST(request: Request) {
     const supabase = createServiceSupabase();
     const projectId = crypto.randomUUID();
 
-    try {
-      await supabase.from("projects").insert({
-        id: projectId,
-        user_id: user.id,
-        title,
-        language,
-        status: "processing"
-      });
-    } catch (err) {
-      console.warn("Supabase project insert failed, falling back to mockDb:", err);
-    }
-
-    const pages: PaperPage[] = await Promise.all(
-      files.map(async (file, index) => {
-        const normalized = await normalizeUpload(file);
-        const pageId = crypto.randomUUID();
-        const path = `${user.id}/${projectId}/${pageId}.${fileExt(normalized.mimeType)}`;
-
-        // Upload image for preview (non-blocking fallback to base64)
-        let publicUrlStr = "";
-        try {
-          const upload = await supabase.storage.from("paper-sources").upload(path, normalized.previewBuffer, {
-            contentType: normalized.mimeType,
-            upsert: true
-          });
-          if (upload.error) throw upload.error;
-          const { data: publicUrl } = supabase.storage.from("paper-sources").getPublicUrl(path);
-          publicUrlStr = publicUrl.publicUrl;
-        } catch (err) {
-          console.warn("Storage upload failed, using base64 URI:", err);
-          publicUrlStr = `data:${normalized.mimeType};base64,${normalized.previewBuffer.toString("base64")}`;
-        }
-
-        // Single-pass: image → OCR + HTML in one Gemini call
-        let ocrText = "";
-        let html = "";
-        try {
-          if (normalized.sourceType === "image") {
-            ({ ocrText, html } = await extractAndFormatPage(normalized.buffer, normalized.mimeType, language));
-          } else {
-            ocrText = "PDF page";
-            html = `<p>PDF page ${index + 1} uploaded.</p>`;
-          }
-        } catch (err) {
-          captureException(err, { context: "ocr", fileName: file.name, pageIndex: index });
-          ocrText = `[OCR failed for ${file.name}]`;
-          html = `<h2>Page ${index + 1}</h2><p>OCR processing failed. Please try re-uploading this page.</p>`;
-        }
-
-        return {
-          id: pageId,
-          pageNumber: index + 1,
-          sourceUrl: publicUrlStr,
-          sourceType: normalized.sourceType,
-          ocrText,
-          html,
-          diagrams: (html.match(/\[DIAGRAM HERE\]/g) ?? []).map((_, diagramIndex) => ({
-            id: crypto.randomUUID(),
-            placeholder: `[DIAGRAM HERE ${diagramIndex + 1}]`,
-            pageNumber: index + 1
-          }))
+    // STREAM RESPONSE
+    const stream = new ReadableStream({
+      async start(controller) {
+        const send = (data: any) => {
+          try {
+            controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(data)}\n\n`));
+          } catch (e) {}
         };
-      })
-    );
 
-    const projectData = {
-      id: projectId,
-      user_id: user.id,
-      title,
-      language,
-      pages,
-      status: "ready" as const,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+        send({ status: "Preparing database...", progress: 10 });
 
-    try {
-      await supabase
-        .from("projects")
-        .update({ pages, status: "ready", updated_at: new Date().toISOString() })
-        .eq("id", projectId)
-        .eq("user_id", user.id);
-    } catch (err) {
-      console.warn("Supabase project update failed, saving project to mockDb:", err);
-    }
+        try {
+          await supabase.from("projects").insert({
+            id: projectId,
+            user_id: user.id,
+            title,
+            language,
+            status: "processing"
+          });
+        } catch (err) {
+          console.warn("Supabase project insert failed, falling back to mockDb:", err);
+        }
 
-    // Always mirror to mockDb
-    mockDb.mockProjects[projectId] = projectData;
+        let completed = 0;
+        send({ status: "Extracting text from images...", progress: 15 });
 
-    const durationMs = Date.now() - startTime;
-    trackOcr({
-      provider: process.env.OCR_PROVIDER ?? "openai",
-      fileCount: files.length,
-      success: true,
-      durationMs,
+        try {
+          const pages: PaperPage[] = await Promise.all(
+            files.map(async (file, index) => {
+              const normalized = await normalizeUpload(file);
+              const pageId = crypto.randomUUID();
+              const path = `${user.id}/${projectId}/${pageId}.${fileExt(normalized.mimeType)}`;
+
+              let publicUrlStr = "";
+              try {
+                const upload = await supabase.storage.from("paper-sources").upload(path, normalized.previewBuffer, {
+                  contentType: normalized.mimeType,
+                  upsert: true
+                });
+                if (upload.error) throw upload.error;
+                const { data: publicUrl } = supabase.storage.from("paper-sources").getPublicUrl(path);
+                publicUrlStr = publicUrl.publicUrl;
+              } catch (err) {
+                publicUrlStr = `data:${normalized.mimeType};base64,${normalized.previewBuffer.toString("base64")}`;
+              }
+
+              let ocrText = "";
+              let html = "";
+              try {
+                if (normalized.sourceType === "image") {
+                  ({ ocrText, html } = await extractAndFormatPage(normalized.buffer, normalized.mimeType, language));
+                } else {
+                  ocrText = "PDF page";
+                  html = `<p>PDF page ${index + 1} uploaded.</p>`;
+                }
+              } catch (err) {
+                captureException(err, { context: "ocr", fileName: file.name, pageIndex: index });
+                ocrText = `[OCR failed for ${file.name}]`;
+                html = `<h2>Page ${index + 1}</h2><p>OCR processing failed. Please try re-uploading this page.</p>`;
+              }
+
+              completed++;
+              send({ 
+                status: `Processed page ${completed}/${files.length}`, 
+                progress: 15 + Math.round((80 * completed) / files.length) 
+              });
+
+              return {
+                id: pageId,
+                pageNumber: index + 1,
+                sourceUrl: publicUrlStr,
+                sourceType: normalized.sourceType,
+                ocrText,
+                html,
+                diagrams: (html.match(/\[DIAGRAM HERE\]/g) ?? []).map((_, diagramIndex) => ({
+                  id: crypto.randomUUID(),
+                  placeholder: `[DIAGRAM HERE ${diagramIndex + 1}]`,
+                  pageNumber: index + 1
+                }))
+              };
+            })
+          );
+
+          const projectData = {
+            id: projectId,
+            user_id: user.id,
+            title,
+            language,
+            pages,
+            status: "ready" as const,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+
+          try {
+            await supabase
+              .from("projects")
+              .update({ pages, status: "ready", updated_at: new Date().toISOString() })
+              .eq("id", projectId)
+              .eq("user_id", user.id);
+          } catch (err) {}
+
+          mockDb.mockProjects[projectId] = projectData;
+
+          const durationMs = Date.now() - startTime;
+          trackOcr({ provider: process.env.OCR_PROVIDER ?? "openai", fileCount: files.length, success: true, durationMs });
+          log.request("POST", "/api/process", 200, durationMs, { fileCount: files.length, userId: user.id });
+
+          send({ status: "Done!", progress: 100, projectId, pages });
+          controller.close();
+        } catch (error: any) {
+          captureException(error, { context: "process_route_stream" });
+          send({ error: error.message || "Failed to process files" });
+          controller.close();
+        }
+      }
     });
-    log.request("POST", "/api/process", 200, durationMs, { fileCount: files.length, userId: user.id });
 
-    return NextResponse.json({ projectId, pages });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
+      }
+    });
+
   } catch (error) {
-    const durationMs = Date.now() - startTime;
-    captureException(error, { context: "process_route" });
-    trackOcr({
-      provider: process.env.OCR_PROVIDER ?? "openai",
-      fileCount: 0,
-      success: false,
-      durationMs,
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
     return errorResponse(error, "process");
   }
 }
