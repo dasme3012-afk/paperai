@@ -16,7 +16,7 @@ import FontFamily from "@tiptap/extension-font-family";
 import Color from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
 
-import { FontSize, PageBreak } from "@/lib/tiptap-extensions";
+import { FontSize, PageBreak, TabToSpace } from "@/lib/tiptap-extensions";
 
 import {
   AlignCenter, AlignLeft, AlignRight, AlignJustify, Bold, ChevronLeft, ChevronRight,
@@ -41,9 +41,6 @@ const FONT_FAMILIES = [
   { name: "Impact", value: "Impact" },
 ];
 
-const FONT_SIZES = [
-  "12px", "13px", "14px", "15px", "16px", "18px", "20px", "24px", "32px", "48px"
-];
 
 export function PaperEditor({ project, demoMode = false }: Props) {
   const [title, setTitle] = useState(project.title);
@@ -91,7 +88,8 @@ export function PaperEditor({ project, demoMode = false }: Props) {
       Color,
       Highlight.configure({ multicolor: true }),
       FontSize,
-      PageBreak
+      PageBreak,
+      TabToSpace
     ],
     content: active?.html ?? "<p></p>",
     editorProps: {
@@ -272,17 +270,14 @@ export function PaperEditor({ project, demoMode = false }: Props) {
         </select>
 
         {/* Font Size selector */}
-        <select
-          value={activeFontSize}
-          onChange={(e) => editor?.chain().focus().setFontSize(e.target.value).run()}
+        <input
+          type="number"
+          value={parseInt(activeFontSize) || 15}
+          onChange={(e) => editor?.chain().focus().setFontSize(`${e.target.value}px`).run()}
           style={{ background: "#1b1b2f", border: "1px solid rgba(255,255,255,0.15)" }}
-          className="h-6 px-1.5 text-xs text-white rounded outline-none cursor-pointer focus:border-blue-500 mr-1"
-        >
-          <option value="">Size</option>
-          {FONT_SIZES.map((sz) => (
-            <option key={sz} value={sz}>{sz}</option>
-          ))}
-        </select>
+          className="h-6 w-14 px-1.5 text-xs text-white rounded outline-none focus:border-blue-500 mr-1 text-center"
+          title="Font Size (px)"
+        />
         <Sep />
 
         {/* Basic styles */}

@@ -93,6 +93,7 @@ async function _extractAndFormatGemini(
     "- Preserve all tables with <table><thead><tbody><tr><th><td>.",
     "- For horizontal dividing lines, use an <hr> tag.",
     "- For any diagrams, charts, graphs, images, or illustrations, insert the exact text [DIAGRAM HERE].",
+    "- If the original text or numerals are in a specific language (like Marathi or Hindi), preserve them EXACTLY. DO NOT translate numerals to English.",
     "- Do NOT add any boxes or content that is not visible in the image.",
     "- Correct obvious OCR mistakes but never change academic meaning.",
     "Return ONLY the HTML. No markdown fences, no explanations."
@@ -220,6 +221,7 @@ const SYSTEM_PROMPT = [
   "Put marks like [2] inside <span class=\"marks\">. MCQ options in 2-col borderless table.",
   "- For horizontal dividing lines, use an <hr> tag.",
   "- For any diagrams, charts, graphs, images, or illustrations, insert the exact text [DIAGRAM HERE].",
+  "- If the original text or numerals are in a specific language (like Marathi), preserve them EXACTLY. DO NOT translate numerals to English.",
   "Do NOT add any boxes or placeholder text not present in the original content.",
   "Return ONLY HTML — no markdown fences, no explanations."
 ].join(" ");

@@ -101,3 +101,16 @@ export const PageBreak = Node.create({
     };
   },
 });
+
+// ─── Custom Tab Extension ──────────────────────────────────────────────────
+
+export const TabToSpace = Extension.create({
+  name: 'tabToSpace',
+  addKeyboardShortcuts() {
+    return {
+      Tab: () => {
+        return this.editor.commands.insertContent('&nbsp;&nbsp;&nbsp;&nbsp;');
+      },
+    }
+  },
+});
