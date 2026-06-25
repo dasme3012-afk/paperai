@@ -109,13 +109,13 @@ export default function HomePage() {
           AI-powered OCR · Gemini 2.5 Pro
         </div>
         <h1 className="text-5xl sm:text-7xl font-black leading-[1.05] tracking-tight mb-4">
-          Digitize question<br />
+          Digitize text<br />
           <span className="bg-gradient-to-r from-brand via-blue-400 to-cyan-400 bg-clip-text text-transparent">
             papers instantly
           </span>
         </h1>
         <p className="mx-auto max-w-xl text-lg text-white/55 leading-relaxed mb-10">
-          Upload handwritten or printed exam papers. AI extracts, formats, and delivers a clean editable document — ready to edit and export.
+          Upload handwritten or printed papers. AI extracts, formats, and delivers a clean editable document — ready to edit and export.
         </p>
       </section>
 
