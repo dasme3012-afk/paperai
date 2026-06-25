@@ -1,8 +1,8 @@
-# PaperAI
+# Textipe
 
-**PaperAI** is an AI-powered OCR application that digitizes physical question papers, worksheets, and exams into perfectly formatted, editable documents.
+**Textipe** is an AI-powered OCR application that digitizes physical question papers, worksheets, and exams into perfectly formatted, editable documents.
 
-Teachers spend countless hours retyping physical papers. PaperAI automates this using advanced AI (Google Gemini / OpenAI) to extract text, reconstruct tables, and preserve formatting, outputting clean HTML that can be edited and exported to DOCX or PDF.
+Teachers spend countless hours retyping physical papers. Textipe automates this using advanced AI (Google Gemini / OpenAI) to extract text, reconstruct tables, and preserve formatting, outputting clean HTML that can be edited and exported to DOCX or PDF.
 
 ## ✨ Features
 - **Smart OCR:** Uses Gemini 1.5 Flash (or OpenAI GPT-4o) to instantly digitize complex papers.
@@ -24,8 +24,8 @@ Teachers spend countless hours retyping physical papers. PaperAI automates this 
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/paperai.git
-cd paperai
+git clone https://github.com/yourusername/textipe.git
+cd textipe
 npm install
 ```
 
@@ -49,7 +49,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - [Troubleshooting](docs/troubleshooting.md)
 
 ## ☁️ Deployment
-PaperAI is optimized for deployment on Vercel. See the [Deployment Guide](docs/deployment-guide.md) for step-by-step instructions.
+Textipe is optimized for deployment on Vercel. See the [Deployment Guide](docs/deployment-guide.md) for step-by-step instructions.
 
 ## 📄 License
 This project is licensed under the MIT License.

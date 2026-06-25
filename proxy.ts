@@ -60,7 +60,8 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // ── Supabase Session Refresh ──
+  // ── Supabase Session Refresh & Auth Redirects ──
+  let user = null;
   if (
     isValidHttpUrl(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -82,10 +83,24 @@ export async function proxy(request: NextRequest) {
           },
         }
       );
-      await supabase.auth.getSession();
+      const { data } = await supabase.auth.getUser();
+      user = data.user;
     } catch {
       // Silently continue if Supabase session refresh fails
     }
+  }
+
+  const isAuthPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname === '/register';
+  const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/projects') || request.nextUrl.pathname.startsWith('/profile');
+
+  if (isProtectedRoute && !user) {
+    const loginUrl = new URL('/login', request.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (isAuthPage && user) {
+    const dashboardUrl = new URL('/dashboard', request.url);
+    return NextResponse.redirect(dashboardUrl);
   }
 
   return response;

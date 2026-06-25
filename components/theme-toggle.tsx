@@ -7,7 +7,7 @@ export function ThemeToggle() {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("paperai-theme");
+    const stored = localStorage.getItem("textipe-theme");
     const next = stored ? stored === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
@@ -16,7 +16,7 @@ export function ThemeToggle() {
   function toggle() {
     const next = !dark;
     setDark(next);
-    localStorage.setItem("paperai-theme", next ? "dark" : "light");
+    localStorage.setItem("textipe-theme", next ? "dark" : "light");
     document.documentElement.classList.toggle("dark", next);
   }
 

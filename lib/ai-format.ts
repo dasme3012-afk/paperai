@@ -91,8 +91,9 @@ async function _extractAndFormatGemini(
     "- Marks like [2] or (4) go inside <strong> at the end of the line.",
     "- MCQ options A B C D: put in a 2-column borderless table <table class='borderless'><tr><td>(A)...</td><td>(B)...</td></tr></table>",
     "- Preserve all tables with <table><thead><tbody><tr><th><td>.",
-    "- Do NOT add any boxes, placeholders, or content that is not visible in the image.",
-    "- Do NOT add [DIAGRAM HERE] or any other placeholder text.",
+    "- For horizontal dividing lines, use an <hr> tag.",
+    "- For any diagrams, charts, graphs, images, or illustrations, insert the exact text [DIAGRAM HERE].",
+    "- Do NOT add any boxes or content that is not visible in the image.",
     "- Correct obvious OCR mistakes but never change academic meaning.",
     "Return ONLY the HTML. No markdown fences, no explanations."
   ].join(" ");
@@ -111,6 +112,12 @@ async function _extractAndFormatGemini(
               { inlineData: { mimeType, data: buffer.toString("base64") } }
             ]
           }
+        ],
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
         ],
         generationConfig: { temperature: 0, maxOutputTokens: 8192 }
       })
@@ -187,6 +194,12 @@ async function formatWithGoogleAiStudio(ocrText: string, language: string) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: `${SYSTEM_PROMPT}\n\nLanguage hint: ${language}\n\nOCR TEXT:\n${ocrText}` }] }],
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+        ],
         generationConfig: { temperature: 0.1 }
       })
     }
@@ -205,6 +218,8 @@ const SYSTEM_PROMPT = [
   "Convert the given content into clean semantic HTML.",
   "Use h1/h2/h3 for headings, ol/li for numbered questions, ul/li for bullets.",
   "Put marks like [2] inside <strong>. MCQ options in 2-col borderless table.",
+  "- For horizontal dividing lines, use an <hr> tag.",
+  "- For any diagrams, charts, graphs, images, or illustrations, insert the exact text [DIAGRAM HERE].",
   "Do NOT add any boxes or placeholder text not present in the original content.",
   "Return ONLY HTML — no markdown fences, no explanations."
 ].join(" ");

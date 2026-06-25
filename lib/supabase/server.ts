@@ -44,32 +44,6 @@ export function createServiceSupabase() {
   });
 }
 
-export async function getOrCreateGuestUser() {
-  const supabase = createServiceSupabase();
-  const guestEmail = "guest@paperai.local";
-
-  // Try to create the user
-  const { data, error } = await supabase.auth.admin.createUser({
-    email: guestEmail,
-    password: crypto.randomUUID(),
-    email_confirm: true
-  });
-
-  if (!error && data.user) {
-    return data.user;
-  }
-
-  // If already exists, fetch users and find it
-  const { data: listData, error: listError } = await supabase.auth.admin.listUsers();
-  if (listError) throw listError;
-
-  const user = listData.users.find(u => u.email === guestEmail);
-  if (!user) {
-    throw new Error("Failed to retrieve guest user.");
-  }
-  return user;
-}
-
 export async function getEffectiveUser() {
   try {
     const authClient = await createServerSupabase();
@@ -81,21 +55,20 @@ export async function getEffectiveUser() {
       return user;
     }
   } catch (err) {
-    console.warn("Failed to get authenticated user, falling back to guest:", err);
+    console.warn("Failed to get authenticated user:", err);
   }
 
-  // Fallback to guest user
-  try {
-    const guest = await getOrCreateGuestUser();
-    if (guest) return guest;
-  } catch (err) {
-    console.error("Error retrieving guest user, falling back to offline guest:", err);
+  // If Supabase is not fully configured, fallback to offline guest
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key || !url.startsWith("http")) {
+    return {
+      id: "00000000-0000-0000-0000-000000000000",
+      email: "offline-guest@paperai.local"
+    } as any;
   }
 
-  return {
-    id: "00000000-0000-0000-0000-000000000000",
-    email: "offline-guest@paperai.local"
-  } as any;
+  return null;
 }
 
 // Global in-memory DB fallback for offline mode

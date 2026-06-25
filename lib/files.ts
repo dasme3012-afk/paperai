@@ -17,6 +17,7 @@ export async function normalizeUpload(file: File) {
   const metadata = await image.metadata();
   const width = Math.min(metadata.width ?? 1800, 1800);
   const compressed = await image
+    .flatten({ background: '#ffffff' })
     .resize({ width, withoutEnlargement: true })
     .jpeg({ quality: 82, mozjpeg: true })
     .toBuffer();

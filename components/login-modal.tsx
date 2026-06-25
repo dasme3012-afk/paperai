@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { X, Mail, Lock, ArrowLeft, Loader2, Sparkles } from "lucide-react";
+import { X, Mail, Lock, ArrowLeft, Loader2 } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 
 type Props = {
