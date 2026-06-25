@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Mail, Lock, ArrowLeft, Loader2, Sparkles, Eye, EyeOff } from "lucide-react";
@@ -15,6 +15,16 @@ export default function LoginPage() {
   const [view, setView] = useState<View>("sign-in");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    // If the user presses the back button or visits /login while already logged in, redirect them back to dashboard
+    const supabase = createBrowserClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user && !data.user.is_anonymous) {
+        window.location.href = "/dashboard";
+      }
+    });
+  }, []);
 
   function resetForm() {
     setEmail("");

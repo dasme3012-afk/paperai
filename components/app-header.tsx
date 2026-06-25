@@ -24,6 +24,14 @@ export function AppHeader() {
             <img src="/logo.png" alt="Textipe Logo" className="h-7 w-auto" />
           </Link>
         </div>
+        
+        {/* ── Middle Navigation Ribbon ── */}
+        <div className="hidden md:flex items-center justify-center gap-6 text-sm font-semibold text-black/60 dark:text-white/60">
+          <Link href="/" className="hover:text-black dark:hover:text-white transition-colors">Home</Link>
+          <Link href="/#how-to-use" className="hover:text-black dark:hover:text-white transition-colors">How to use</Link>
+          <Link href="/#pricing" className="hover:text-black dark:hover:text-white transition-colors">Pricing</Link>
+        </div>
+
         <div className="flex items-center gap-2">
           <Link href="/dashboard" className="hidden sm:inline-block rounded-md border border-line px-4 py-2 text-sm font-bold hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5 transition-colors">Dashboard</Link>
           <Link href="/projects/new" className="rounded-md bg-brand px-4 py-2 text-sm font-bold text-white hover:brightness-110 transition-all">New</Link>

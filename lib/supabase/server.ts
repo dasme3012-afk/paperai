@@ -62,8 +62,15 @@ export async function getEffectiveUser() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key || !url.startsWith("http")) {
+    const { headers } = await import("next/headers");
+    const h = await headers();
+    // Use IP to isolate mock DB per user
+    const ip = h.get("x-forwarded-for") || "127.0.0.1";
+    // Create a safe, deterministic ID from IP (replace non-alphanumerics)
+    const safeIp = ip.replace(/[^a-zA-Z0-9]/g, "").substring(0, 12).padEnd(12, "0");
+    
     return {
-      id: "00000000-0000-0000-0000-000000000000",
+      id: `00000000-0000-0000-0000-${safeIp}`,
       email: "offline-guest@paperai.local"
     } as any;
   }

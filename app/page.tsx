@@ -54,10 +54,20 @@ export default function HomePage() {
     <main className="min-h-screen bg-[#0a0a0f] text-white">
       {/* Nav */}
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-        <Link href="/" className="flex items-center select-none">
-          <img src="/logo.png" alt="Textipe Logo" className="h-7 w-auto" />
-        </Link>
-        <div className="flex items-center gap-3 text-sm">
+        <div className="flex-1">
+          <Link href="/" className="flex items-center select-none w-fit">
+            <img src="/logo.png" alt="Textipe Logo" className="h-7 w-auto" />
+          </Link>
+        </div>
+        
+        {/* ── Middle Navigation Ribbon ── */}
+        <div className="hidden md:flex flex-1 items-center justify-center gap-6 text-sm font-semibold text-white/70">
+          <Link href="/" className="hover:text-white transition-colors">Home</Link>
+          <a href="#how-to-use" className="hover:text-white transition-colors">How to use</a>
+          <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 text-sm flex-1">
           {user ? (
             <>
               <Link href="/dashboard" className="rounded-md bg-white/10 border border-white/15 px-4 py-2 font-semibold hover:bg-white/15 transition-colors">
@@ -110,12 +120,14 @@ export default function HomePage() {
       </section>
 
       {/* Upload + Inline Editor */}
-      <section className="mx-auto max-w-3xl px-5 pb-16">
+      <section id="how-to-use" className="mx-auto max-w-3xl px-5 pb-16">
         <HomeUploadZone />
       </section>
 
       {/* Pricing */}
-      <PricingSection onLoginRequired={() => setIsLoginOpen(true)} />
+      <div id="pricing">
+        <PricingSection onLoginRequired={() => setIsLoginOpen(true)} />
+      </div>
 
       <footer className="border-t border-white/5 py-10">
         <div className="mx-auto max-w-6xl px-5 flex flex-col md:flex-row items-center justify-between gap-4">
