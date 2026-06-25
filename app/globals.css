@@ -63,9 +63,13 @@ select {
 }
 
 .editor-content p, .ProseMirror p {
-  min-height: 20px;
   line-height: 1.45;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
+}
+
+.editor-content .marks, .ProseMirror .marks {
+  float: right;
+  font-weight: bold;
 }
 
 .editor-content ul, .ProseMirror ul {

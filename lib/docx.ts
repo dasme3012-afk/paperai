@@ -6,6 +6,15 @@ export async function htmlToDocxBuffer(html: string, title: string) {
   const doc = new Document({
     creator: "PaperAI",
     title,
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: "Arial"
+          }
+        }
+      }
+    },
     sections: [
       {
         properties: {

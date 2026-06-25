@@ -23,7 +23,7 @@ import {
   Download, Heading1, Heading2, Heading3, ImagePlus, Italic, Strikethrough,
   List, ListOrdered, RotateCcw, RotateCw, Save, Table2, Grid3X3,
   UnderlineIcon, ZoomIn, ZoomOut, PanelLeftClose, PanelLeftOpen,
-  SeparatorHorizontal
+  SeparatorHorizontal, Minus
 } from "lucide-react";
 import { toast } from "sonner";
 import type { PaperPage, PaperProject } from "@/lib/types";
@@ -340,7 +340,8 @@ export function PaperEditor({ project, demoMode = false }: Props) {
         <TB label="Numbered list" active={editor?.isActive("orderedList")} onClick={() => editor?.chain().focus().toggleOrderedList().run()}><ListOrdered size={14} /></TB>
         <Sep />
 
-        {/* Page Break */}
+        {/* Page Break / Horizontal Line */}
+        <TB label="Insert Horizontal Line" onClick={() => editor?.chain().focus().setHorizontalRule().run()}><Minus size={14} /></TB>
         <TB label="Insert Page Break" onClick={() => editor?.chain().focus().setPageBreak().run()}><SeparatorHorizontal size={14} /></TB>
         <Sep />
 
