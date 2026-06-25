@@ -109,10 +109,10 @@ export function HomeUploadZone() {
     setProgressMsg("Preparing files...");
 
     try {
-      // Expand PDFs to images client-side
-      setProgressMsg("Reading pages...");
+      // Expand PDFs to images and compress existing images client-side
+      setProgressMsg("Compressing and reading pages...");
       setProgress(15);
-      const processedFiles = await expandFiles(files);
+      const processedFiles = await processAndCompressFiles(files);
 
       setProgressMsg("Uploading to AI engine...");
       setProgress(30);
@@ -322,36 +322,67 @@ export function HomeUploadZone() {
   );
 }
 
-// Expand PDFs into JPEG images client-side
-async function expandFiles(files: File[]) {
+// Expand PDFs into JPEGs and compress large images client-side before upload
+async function processAndCompressFiles(files: File[]) {
   const output: File[] = [];
   for (const file of files) {
-    if (file.type !== "application/pdf") {
-      output.push(file);
-      continue;
-    }
-    try {
-      const pdfjs = await import("pdfjs-dist");
-      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-        "pdfjs-dist/build/pdf.worker.min.mjs",
-        import.meta.url
-      ).toString();
-      const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
-      for (let p = 1; p <= pdf.numPages; p++) {
-        const page = await pdf.getPage(p);
-        const vp = page.getViewport({ scale: 2 });
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        if (!ctx) continue;
-        canvas.width = vp.width;
-        canvas.height = vp.height;
-        await page.render({ canvasContext: ctx, viewport: vp }).promise;
-        const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.88));
-        if (!blob) continue;
-        output.push(new File([blob], `${file.name.replace(/\.pdf$/i, "")}-p${p}.jpg`, { type: "image/jpeg" }));
+    if (file.type === "application/pdf") {
+      try {
+        const pdfjs = await import("pdfjs-dist");
+        pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+          "pdfjs-dist/build/pdf.worker.min.mjs",
+          import.meta.url
+        ).toString();
+        const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+        for (let p = 1; p <= pdf.numPages; p++) {
+          const page = await pdf.getPage(p);
+          const vp = page.getViewport({ scale: 2 });
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          if (!ctx) continue;
+          canvas.width = vp.width;
+          canvas.height = vp.height;
+          await page.render({ canvasContext: ctx, viewport: vp }).promise;
+          const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.85));
+          if (!blob) continue;
+          output.push(new File([blob], `${file.name.replace(/\.pdf$/i, "")}-p${p}.jpg`, { type: "image/jpeg" }));
+        }
+      } catch {
+        output.push(file); // fall back to sending raw PDF
       }
-    } catch {
-      output.push(file); // fall back to sending raw PDF
+    } else if (file.type.startsWith("image/")) {
+      // Compress image client-side to save bandwidth and bypass Vercel 4.5MB limit
+      try {
+        const bmp = await createImageBitmap(file);
+        const MAX_WIDTH = 1800;
+        let width = bmp.width;
+        let height = bmp.height;
+
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(bmp, 0, 0, width, height);
+          const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.85));
+          if (blob) {
+            output.push(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
+            continue;
+          }
+        }
+        output.push(file); // Fallback
+      } catch {
+        output.push(file); // Fallback
+      }
+    } else {
+      output.push(file);
     }
   }
   return output;
