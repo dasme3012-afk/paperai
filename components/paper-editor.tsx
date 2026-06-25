@@ -59,12 +59,8 @@ export function PaperEditor({ project, demoMode = false }: Props) {
   const [zoom, setZoom] = useState(1);
   const [showOriginal, setShowOriginal] = useState(true);
 
-  // Auto-hide original panel on mobile devices
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.innerWidth < 1024) {
-      setShowOriginal(false);
-    }
-  }, []);
+  // Show original panel by default
+
   const active = pages[activePage];
 
   // We use refs to avoid re-initializing TipTap when pages/activePage state shifts
@@ -438,11 +434,11 @@ export function PaperEditor({ project, demoMode = false }: Props) {
       </div>
 
       {/* ── Main landscape workspace: original | editor ── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
 
-        {/* ── LEFT: Original image (48% width) ── */}
+        {/* ── LEFT: Original image ── */}
         {showOriginal && (
-          <div className="flex flex-col" style={{ width: "48%", flexShrink: 0, borderRight: "1px solid rgba(255,255,255,0.07)", background: "#13131f" }}>
+          <div className="flex flex-col w-full md:w-[48%] h-[40vh] md:h-auto shrink-0 border-b md:border-b-0 md:border-r border-white/10" style={{ background: "#13131f" }}>
 
             {/* Image controls */}
             <div className="flex items-center justify-between px-3 py-1.5 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
