@@ -58,24 +58,18 @@ export async function getEffectiveUser() {
     console.warn("Failed to get authenticated user:", err);
   }
 
-  // If Supabase is not fully configured, fallback to offline guest
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key || !url.startsWith("http")) {
-    const { headers } = await import("next/headers");
-    const h = await headers();
-    // Use IP to isolate mock DB per user
-    const ip = h.get("x-forwarded-for") || "127.0.0.1";
-    // Create a safe, deterministic ID from IP (replace non-alphanumerics)
-    const safeIp = ip.replace(/[^a-zA-Z0-9]/g, "").substring(0, 12).padEnd(12, "0");
-    
-    return {
-      id: `00000000-0000-0000-0000-${safeIp}`,
-      email: "offline-guest@paperai.local"
-    } as any;
-  }
-
-  return null;
+  // Fallback to offline guest if no user is found (Supabase broken, misconfigured, or missing cookies)
+  const { headers } = await import("next/headers");
+  const h = await headers();
+  // Use IP to isolate mock DB per user
+  const ip = h.get("x-forwarded-for") || "127.0.0.1";
+  // Create a safe, deterministic ID from IP (replace non-alphanumerics)
+  const safeIp = ip.replace(/[^a-zA-Z0-9]/g, "").substring(0, 12).padEnd(12, "0");
+  
+  return {
+    id: `00000000-0000-0000-0000-${safeIp}`,
+    email: "offline-guest@paperai.local"
+  } as any;
 }
 
 // Global in-memory DB fallback for offline mode
