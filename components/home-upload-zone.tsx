@@ -207,7 +207,15 @@ export function HomeUploadZone() {
               className="flex w-full items-center justify-between text-sm font-semibold text-white/60 hover:text-white transition-colors mb-2"
             >
               <span>{files.length} file{files.length !== 1 ? "s" : ""} selected</span>
-              {showFiles ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+              <div className="flex items-center gap-4">
+                <span 
+                  className="text-red-400/80 hover:text-red-300 text-xs px-2 py-0.5 rounded bg-red-500/10 transition-colors" 
+                  onClick={(e) => { e.stopPropagation(); setFiles([]); setTitle(""); setProject(null); }}
+                >
+                  Clear All
+                </span>
+                {showFiles ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+              </div>
             </button>
 
             {showFiles && (
@@ -241,11 +249,10 @@ export function HomeUploadZone() {
                 <Loader2 size={12} className="animate-spin" />
                 {progressMsg}
               </span>
-              <span>{progress}%</span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10 relative">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-brand to-blue-400 transition-all duration-500"
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-brand to-blue-400 transition-all duration-[2000ms] ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>

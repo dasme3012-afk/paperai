@@ -23,7 +23,7 @@ import {
   Download, Heading1, Heading2, Heading3, ImagePlus, Italic, Strikethrough,
   List, ListOrdered, RotateCcw, RotateCw, Save, Table2, Grid3X3,
   UnderlineIcon, ZoomIn, ZoomOut, PanelLeftClose, PanelLeftOpen,
-  SeparatorHorizontal, Minus
+  SeparatorHorizontal, Minus, Printer
 } from "lucide-react";
 import { toast } from "sonner";
 import type { PaperPage, PaperProject } from "@/lib/types";
@@ -39,6 +39,12 @@ const FONT_FAMILIES = [
   { name: "Verdana", value: "Verdana" },
   { name: "Trebuchet MS", value: "Trebuchet MS" },
   { name: "Impact", value: "Impact" },
+  { name: "Tahoma", value: "Tahoma" },
+  { name: "Palatino", value: "Palatino Linotype, Book Antiqua, Palatino, serif" },
+  { name: "Garamond", value: "Garamond, serif" },
+  { name: "Comic Sans MS", value: "Comic Sans MS" },
+  { name: "Consolas", value: "Consolas, monospace" },
+  { name: "Helvetica", value: "Helvetica, Arial, sans-serif" }
 ];
 
 
@@ -181,6 +187,39 @@ export function PaperEditor({ project, demoMode = false }: Props) {
     setExporting(null);
   }
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  function goToPage(index: number) {
+    setActivePage(index);
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handlePrint() {
+    const w = window.open();
+    if (!w) return;
+    const currentPages = flushChanges();
+    w.document.write(`
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; }
+            .page-break { page-break-after: always; }
+          </style>
+        </head>
+        <body>
+          ${currentPages.map((p) => p.html).join('<div class="page-break"></div>')}
+        </body>
+      </html>
+    `);
+    w.document.close();
+    w.focus();
+    setTimeout(() => {
+      w.print();
+      w.close();
+    }, 250);
+  }
+
   if (!active) return <div className="p-8 text-center text-gray-500">No pages found.</div>;
 
   const isLandscapeRotated = (rotation / 90) % 2 !== 0;
@@ -229,6 +268,14 @@ export function PaperEditor({ project, demoMode = false }: Props) {
           </button>
           
           <button
+            onClick={handlePrint}
+            className="flex h-7 px-2.5 items-center gap-1 rounded border border-white/10 text-xs font-semibold text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <Printer size={13} />
+            <span>Print</span>
+          </button>
+          
+          <button
             disabled={exporting !== null}
             onClick={downloadPdf}
             className="flex h-7 px-3 items-center gap-1 rounded bg-blue-600 text-xs font-bold text-white hover:bg-blue-500 disabled:opacity-50 transition-colors"
@@ -247,6 +294,24 @@ export function PaperEditor({ project, demoMode = false }: Props) {
           </button>
         </div>
       </div>
+
+      {/* ── Top Page Navigation ── */}
+      {pages.length > 1 && (
+        <div style={{ background: "#111120", borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+          className="flex items-center justify-between px-4 py-1.5 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <button onClick={() => goToPage(Math.max(0, activePage - 1))} disabled={activePage === 0}
+              className="flex items-center gap-1 h-6 px-2 text-xs font-bold text-white/60 hover:bg-white/10 hover:text-white rounded disabled:opacity-30 transition-colors border border-white/10">
+              <ChevronLeft size={12} /> Prev
+            </button>
+            <span className="text-xs text-white/40 font-mono w-16 text-center">Pg {activePage + 1} / {pages.length}</span>
+            <button onClick={() => goToPage(Math.min(pages.length - 1, activePage + 1))} disabled={activePage === pages.length - 1}
+              className="flex items-center gap-1 h-6 px-2 text-xs font-bold text-white/60 hover:bg-white/10 hover:text-white rounded disabled:opacity-30 transition-colors border border-white/10">
+              Next <ChevronRight size={12} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Ribbon toolbar ── */}
       <div style={{ background: "#111120", borderBottom: "1px solid rgba(255,255,255,0.07)" }}
@@ -384,9 +449,9 @@ export function PaperEditor({ project, demoMode = false }: Props) {
               <div className="flex items-center gap-1">
                 {pages.length > 1 && (
                   <>
-                    <IB title="Prev page" onClick={() => setActivePage((p) => Math.max(0, p - 1))} disabled={activePage === 0}><ChevronLeft size={13} /></IB>
+                    <IB title="Prev page" onClick={() => goToPage(Math.max(0, activePage - 1))} disabled={activePage === 0}><ChevronLeft size={13} /></IB>
                     <span className="text-xs text-white/50 px-1">Pg {activePage + 1}/{pages.length}</span>
-                    <IB title="Next page" onClick={() => setActivePage((p) => Math.min(pages.length - 1, p + 1))} disabled={activePage === pages.length - 1}><ChevronRight size={13} /></IB>
+                    <IB title="Next page" onClick={() => goToPage(Math.min(pages.length - 1, activePage + 1))} disabled={activePage === pages.length - 1}><ChevronRight size={13} /></IB>
                     <div className="mx-1 h-3.5 w-px bg-white/15" />
                   </>
                 )}
@@ -407,7 +472,7 @@ export function PaperEditor({ project, demoMode = false }: Props) {
             {pages.length > 1 && (
               <div className="flex gap-1.5 overflow-x-auto px-2 py-1.5 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
                 {pages.map((page, i) => (
-                  <button key={page.id} onClick={() => setActivePage(i)}
+                  <button key={page.id} onClick={() => goToPage(i)}
                     className="relative flex-shrink-0 overflow-hidden rounded transition-all"
                     style={{ width: 44, height: 56, border: `2px solid ${i === activePage ? "#2563eb" : "rgba(255,255,255,0.15)"}`, opacity: i === activePage ? 1 : 0.6 }}>
                     {page.sourceType === "image"
@@ -449,7 +514,7 @@ export function PaperEditor({ project, demoMode = false }: Props) {
         <div className="flex flex-1 flex-col overflow-hidden" style={{ background: "#2d2d3f" }}>
 
           {/* Scrollable A4 canvas area */}
-          <div className="flex-1 overflow-auto py-6 px-4">
+          <div className="flex-1 overflow-auto py-6 px-4" ref={scrollRef}>
             <div
               style={{
                 background: "#ffffff",
@@ -476,12 +541,12 @@ export function PaperEditor({ project, demoMode = false }: Props) {
             {/* Page navigation footer when multiple pages */}
             {pages.length > 1 && (
               <div className="flex items-center justify-center gap-3 mt-5 pb-4">
-                <button onClick={() => setActivePage((p) => Math.max(0, p - 1))} disabled={activePage === 0}
+                <button onClick={() => goToPage(Math.max(0, activePage - 1))} disabled={activePage === 0}
                   className="flex items-center gap-1 rounded px-3 py-1.5 text-xs font-bold text-white/60 hover:bg-white/10 disabled:opacity-30 transition-colors border border-white/15">
                   <ChevronLeft size={13} /> Prev page
                 </button>
                 <span className="text-xs text-white/40">{activePage + 1} / {pages.length}</span>
-                <button onClick={() => setActivePage((p) => Math.min(pages.length - 1, p + 1))} disabled={activePage === pages.length - 1}
+                <button onClick={() => goToPage(Math.min(pages.length - 1, activePage + 1))} disabled={activePage === pages.length - 1}
                   className="flex items-center gap-1 rounded px-3 py-1.5 text-xs font-bold text-white/60 hover:bg-white/10 disabled:opacity-30 transition-colors border border-white/15">
                   Next page <ChevronRight size={13} />
                 </button>
