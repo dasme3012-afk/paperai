@@ -163,8 +163,8 @@ export default function LoginPage() {
   // ── Shared Components ──
   const GoogleButton = ({ label }: { label: string }) => (
     <button onClick={signInWithGoogle} disabled={loading}
-      className="flex w-full items-center justify-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-bold hover:bg-white/10 disabled:opacity-50 transition-all duration-200 cursor-pointer">
-      <svg className="h-4.5 w-4.5" viewBox="0 0 48 48">
+      className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold hover:bg-white/10 disabled:opacity-50 transition-all duration-200 cursor-pointer">
+      <svg className="h-4 w-4" viewBox="0 0 48 48">
         <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
         <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
         <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
@@ -175,79 +175,79 @@ export default function LoginPage() {
   );
 
   const Divider = () => (
-    <div className="my-5 flex items-center text-xs text-white/30">
+    <div className="my-4 flex items-center text-[10px] text-white/30 uppercase font-bold tracking-wider">
       <div className="h-px w-full bg-white/10" />
-      <span className="px-3 font-semibold whitespace-nowrap">or</span>
+      <span className="px-3 whitespace-nowrap">or</span>
       <div className="h-px w-full bg-white/10" />
     </div>
   );
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center px-5">
-      <section className="w-full max-w-md rounded-2xl border border-white/10 bg-[#151525] p-7 shadow-2xl">
+    <main className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center px-4">
+      <section className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#151525] p-6 shadow-2xl">
 
         {/* ═══════════ SIGN IN ═══════════ */}
         {view === "sign-in" && (
           <>
-            <div className="text-center mb-6">
-              <Link href="/" className="inline-flex items-center mb-4 select-none">
-                <img src="/logo.png" alt="Textipe Logo" className="h-8 w-auto" />
+            <div className="text-center mb-5">
+              <Link href="/" className="inline-flex items-center mb-3 select-none">
+                <img src="/logo.png" alt="Textipe Logo" className="h-6 w-auto" />
               </Link>
-              <h1 className="text-2xl font-black">Welcome back</h1>
-              <p className="mt-1 text-sm text-white/50">Sign in to your account</p>
+              <h1 className="text-xl font-black">Welcome back</h1>
+              <p className="mt-1 text-xs text-white/50">Sign in to your account</p>
             </div>
 
             <GoogleButton label="Continue with Google" />
             <Divider />
 
-            <form onSubmit={handleSignIn} className="space-y-4">
+            <form onSubmit={handleSignIn} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold mb-1.5" htmlFor="si-email">Email address</label>
+                <label className="block text-[11px] font-bold mb-1" htmlFor="si-email">Email address</label>
                 <div className="relative">
-                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                  <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                   <input id="si-email" value={email} onChange={(e) => setEmail(e.target.value)} type="email" required
-                    className="w-full rounded-lg border border-white/10 bg-white/5 pl-9 pr-3 py-2.5 outline-none focus:border-brand text-sm transition-colors"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 pl-8 pr-3 py-2 outline-none focus:border-brand text-xs transition-colors"
                     placeholder="teacher@school.edu" />
                 </div>
               </div>
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold" htmlFor="si-pass">Password</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-bold" htmlFor="si-pass">Password</label>
                   <button type="button" onClick={() => switchView("forgot-password")}
-                    className="text-xs text-brand hover:underline cursor-pointer">Forgot password?</button>
+                    className="text-[11px] text-brand hover:underline cursor-pointer">Forgot password?</button>
                 </div>
                 <div className="relative">
-                  <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                   <input id="si-pass" value={password} onChange={(e) => setPassword(e.target.value)}
                     type={showPassword ? "text" : "password"} required minLength={6}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 pl-9 pr-10 py-2.5 outline-none focus:border-brand text-sm transition-colors"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 pl-8 pr-9 py-2 outline-none focus:border-brand text-xs transition-colors"
                     placeholder="••••••••" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 cursor-pointer">
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
                 </div>
               </div>
               <button type="submit" disabled={loading}
-                className="w-full rounded-lg bg-brand px-4 py-2.5 font-bold text-white disabled:opacity-50 text-sm transition-all hover:brightness-110 flex items-center justify-center gap-2 cursor-pointer">
-                {loading && <Loader2 size={14} className="animate-spin" />}
+                className="w-full rounded-lg bg-brand px-4 py-2 font-bold text-white disabled:opacity-50 text-xs transition-all hover:brightness-110 flex items-center justify-center gap-2 cursor-pointer mt-1">
+                {loading && <Loader2 size={13} className="animate-spin" />}
                 {loading ? "Signing in..." : "Sign In"}
               </button>
             </form>
 
             <button onClick={() => switchView("magic-link")}
-              className="w-full mt-3 rounded-lg border border-white/10 bg-transparent px-4 py-2.5 text-xs font-bold text-white/60 hover:text-white hover:bg-white/5 transition-all cursor-pointer flex items-center justify-center gap-2">
-              <Mail size={13} /> Sign in with Magic Link (no password)
+              className="w-full mt-2.5 rounded-lg border border-white/10 bg-transparent px-4 py-2 text-[11px] font-bold text-white/60 hover:text-white hover:bg-white/5 transition-all cursor-pointer flex items-center justify-center gap-1.5">
+              <Mail size={12} /> Sign in with Magic Link (no password)
             </button>
 
-            <p className="mt-5 text-center text-xs text-white/50">
+            <p className="mt-4 text-center text-[11px] text-white/50">
               Don&apos;t have an account?{" "}
               <button onClick={() => switchView("sign-up")} className="font-bold text-brand hover:underline cursor-pointer">Create one</button>
             </p>
 
-            <div className="mt-5 pt-4 border-t border-white/10">
+            <div className="mt-4 pt-4 border-t border-white/10">
               <button onClick={guestLogin}
-                className="w-full rounded-lg border border-dashed border-white/15 bg-transparent py-2 text-xs font-bold text-white/40 hover:text-brand hover:border-brand transition-colors cursor-pointer">
+                className="w-full rounded-lg border border-dashed border-white/15 bg-transparent py-2 text-[11px] font-bold text-white/40 hover:text-brand hover:border-brand transition-colors cursor-pointer">
                 Try Demo Mode (No Login Required)
               </button>
             </div>
@@ -257,48 +257,48 @@ export default function LoginPage() {
         {/* ═══════════ SIGN UP ═══════════ */}
         {view === "sign-up" && (
           <>
-            <div className="text-center mb-6">
-              <Link href="/" className="inline-flex items-center mb-4 select-none">
-                <img src="/logo.png" alt="Textipe Logo" className="h-8 w-auto" />
+            <div className="text-center mb-5">
+              <Link href="/" className="inline-flex items-center mb-3 select-none">
+                <img src="/logo.png" alt="Textipe Logo" className="h-6 w-auto" />
               </Link>
-              <h1 className="text-2xl font-black">Create account</h1>
-              <p className="mt-1 text-sm text-white/50">Start digitizing exam papers in seconds</p>
+              <h1 className="text-xl font-black">Create account</h1>
+              <p className="mt-1 text-xs text-white/50">Start digitizing exam papers in seconds</p>
             </div>
 
             <GoogleButton label="Sign up with Google" />
             <Divider />
 
-            <form onSubmit={handleSignUp} className="space-y-4">
+            <form onSubmit={handleSignUp} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold mb-1.5" htmlFor="su-email">Email address</label>
+                <label className="block text-[11px] font-bold mb-1" htmlFor="su-email">Email address</label>
                 <div className="relative">
-                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                  <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                   <input id="su-email" value={email} onChange={(e) => setEmail(e.target.value)} type="email" required
-                    className="w-full rounded-lg border border-white/10 bg-white/5 pl-9 pr-3 py-2.5 outline-none focus:border-brand text-sm transition-colors"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 pl-8 pr-3 py-2 outline-none focus:border-brand text-xs transition-colors"
                     placeholder="teacher@school.edu" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1.5" htmlFor="su-pass">Password</label>
+                <label className="block text-[11px] font-bold mb-1" htmlFor="su-pass">Password</label>
                 <div className="relative">
-                  <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                   <input id="su-pass" value={password} onChange={(e) => setPassword(e.target.value)}
                     type={showPassword ? "text" : "password"} required minLength={6}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 pl-9 pr-10 py-2.5 outline-none focus:border-brand text-sm transition-colors"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 pl-8 pr-9 py-2 outline-none focus:border-brand text-xs transition-colors"
                     placeholder="Min 6 characters" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 cursor-pointer">
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1.5" htmlFor="su-confirm">Confirm password</label>
+                <label className="block text-[11px] font-bold mb-1" htmlFor="su-confirm">Confirm password</label>
                 <div className="relative">
-                  <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                   <input id="su-confirm" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                     type={showPassword ? "text" : "password"} required minLength={6}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 pl-9 pr-3 py-2.5 outline-none focus:border-brand text-sm transition-colors"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 pl-8 pr-3 py-2 outline-none focus:border-brand text-xs transition-colors"
                     placeholder="Re-enter your password" />
                 </div>
               </div>
@@ -315,13 +315,13 @@ export default function LoginPage() {
               </div>
 
               <button type="submit" disabled={loading}
-                className="w-full rounded-lg bg-brand px-4 py-2.5 font-bold text-white disabled:opacity-50 text-sm transition-all hover:brightness-110 flex items-center justify-center gap-2 cursor-pointer">
-                {loading && <Loader2 size={14} className="animate-spin" />}
+                className="w-full rounded-lg bg-brand px-4 py-2 font-bold text-white disabled:opacity-50 text-xs transition-all hover:brightness-110 flex items-center justify-center gap-2 cursor-pointer mt-1">
+                {loading && <Loader2 size={13} className="animate-spin" />}
                 {loading ? "Creating account..." : "Create Account"}
               </button>
             </form>
 
-            <p className="mt-5 text-center text-xs text-white/50">
+            <p className="mt-4 text-center text-[11px] text-white/50">
               Already have an account?{" "}
               <button onClick={() => switchView("sign-in")} className="font-bold text-brand hover:underline cursor-pointer">Sign In</button>
             </p>
@@ -332,29 +332,29 @@ export default function LoginPage() {
         {view === "forgot-password" && (
           <>
             <button onClick={() => switchView("sign-in")}
-              className="flex items-center gap-1 text-xs text-white/50 hover:text-white mb-5 transition-colors cursor-pointer">
-              <ArrowLeft size={14} /> Back to Sign In
+              className="flex items-center gap-1 text-[11px] text-white/50 hover:text-white mb-4 transition-colors cursor-pointer">
+              <ArrowLeft size={13} /> Back to Sign In
             </button>
-            <div className="text-center mb-6">
-              <div className="mx-auto h-12 w-12 rounded-full bg-brand/10 flex items-center justify-center mb-4">
-                <Lock size={20} className="text-brand" />
+            <div className="text-center mb-5">
+              <div className="mx-auto h-10 w-10 rounded-full bg-brand/10 flex items-center justify-center mb-3">
+                <Lock size={16} className="text-brand" />
               </div>
-              <h1 className="text-2xl font-black">Reset password</h1>
-              <p className="mt-1 text-sm text-white/50">Enter your email and we&apos;ll send you a reset link</p>
+              <h1 className="text-xl font-black">Reset password</h1>
+              <p className="mt-1 text-xs text-white/50">Enter your email and we&apos;ll send you a reset link</p>
             </div>
-            <form onSubmit={handleForgotPassword} className="space-y-4">
+            <form onSubmit={handleForgotPassword} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold mb-1.5" htmlFor="fp-email">Email address</label>
+                <label className="block text-[11px] font-bold mb-1" htmlFor="fp-email">Email address</label>
                 <div className="relative">
-                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                  <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                   <input id="fp-email" value={email} onChange={(e) => setEmail(e.target.value)} type="email" required autoFocus
-                    className="w-full rounded-lg border border-white/10 bg-white/5 pl-9 pr-3 py-2.5 outline-none focus:border-brand text-sm transition-colors"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 pl-8 pr-3 py-2 outline-none focus:border-brand text-xs transition-colors"
                     placeholder="teacher@school.edu" />
                 </div>
               </div>
               <button type="submit" disabled={loading}
-                className="w-full rounded-lg bg-brand px-4 py-2.5 font-bold text-white disabled:opacity-50 text-sm transition-all hover:brightness-110 flex items-center justify-center gap-2 cursor-pointer">
-                {loading && <Loader2 size={14} className="animate-spin" />}
+                className="w-full rounded-lg bg-brand px-4 py-2 font-bold text-white disabled:opacity-50 text-xs transition-all hover:brightness-110 flex items-center justify-center gap-2 cursor-pointer mt-1">
+                {loading && <Loader2 size={13} className="animate-spin" />}
                 {loading ? "Sending..." : "Send Reset Link"}
               </button>
             </form>
@@ -365,29 +365,29 @@ export default function LoginPage() {
         {view === "magic-link" && (
           <>
             <button onClick={() => switchView("sign-in")}
-              className="flex items-center gap-1 text-xs text-white/50 hover:text-white mb-5 transition-colors cursor-pointer">
-              <ArrowLeft size={14} /> Back to Sign In
+              className="flex items-center gap-1 text-[11px] text-white/50 hover:text-white mb-4 transition-colors cursor-pointer">
+              <ArrowLeft size={13} /> Back to Sign In
             </button>
-            <div className="text-center mb-6">
-              <div className="mx-auto h-12 w-12 rounded-full bg-brand/10 flex items-center justify-center mb-4">
-                <Mail size={20} className="text-brand" />
+            <div className="text-center mb-5">
+              <div className="mx-auto h-10 w-10 rounded-full bg-brand/10 flex items-center justify-center mb-3">
+                <Mail size={16} className="text-brand" />
               </div>
-              <h1 className="text-2xl font-black">Magic link</h1>
-              <p className="mt-1 text-sm text-white/50">We&apos;ll email you a link to sign in — no password needed</p>
+              <h1 className="text-xl font-black">Magic link</h1>
+              <p className="mt-1 text-xs text-white/50">We&apos;ll email you a link to sign in — no password needed</p>
             </div>
-            <form onSubmit={handleMagicLink} className="space-y-4">
+            <form onSubmit={handleMagicLink} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold mb-1.5" htmlFor="ml-email">Email address</label>
+                <label className="block text-[11px] font-bold mb-1" htmlFor="ml-email">Email address</label>
                 <div className="relative">
-                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                  <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                   <input id="ml-email" value={email} onChange={(e) => setEmail(e.target.value)} type="email" required autoFocus
-                    className="w-full rounded-lg border border-white/10 bg-white/5 pl-9 pr-3 py-2.5 outline-none focus:border-brand text-sm transition-colors"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 pl-8 pr-3 py-2 outline-none focus:border-brand text-xs transition-colors"
                     placeholder="teacher@school.edu" />
                 </div>
               </div>
               <button type="submit" disabled={loading}
-                className="w-full rounded-lg bg-brand px-4 py-2.5 font-bold text-white disabled:opacity-50 text-sm transition-all hover:brightness-110 flex items-center justify-center gap-2 cursor-pointer">
-                {loading && <Loader2 size={14} className="animate-spin" />}
+                className="w-full rounded-lg bg-brand px-4 py-2 font-bold text-white disabled:opacity-50 text-xs transition-all hover:brightness-110 flex items-center justify-center gap-2 cursor-pointer mt-1">
+                {loading && <Loader2 size={13} className="animate-spin" />}
                 {loading ? "Sending..." : "Send Magic Link"}
               </button>
             </form>
@@ -396,17 +396,17 @@ export default function LoginPage() {
 
         {/* ═══════════ CHECK EMAIL ═══════════ */}
         {view === "check-email" && (
-          <div className="text-center py-6">
-            <div className="mx-auto h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center mb-5">
-              <Mail size={28} className="text-green-400" />
+          <div className="text-center py-5">
+            <div className="mx-auto h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
+              <Mail size={24} className="text-green-400" />
             </div>
-            <h1 className="text-2xl font-black">Check your email</h1>
-            <p className="mt-2 text-sm text-white/50 max-w-xs mx-auto">
+            <h1 className="text-xl font-black">Check your email</h1>
+            <p className="mt-2 text-xs text-white/50 max-w-xs mx-auto">
               We&apos;ve sent an email to <strong className="text-white">{email}</strong>. Click the link in the email to continue.
             </p>
-            <p className="mt-4 text-xs text-white/30">Didn&apos;t receive it? Check your spam folder.</p>
+            <p className="mt-3 text-[11px] text-white/30">Didn&apos;t receive it? Check your spam folder.</p>
             <button onClick={() => switchView("sign-in")}
-              className="mt-6 rounded-lg border border-white/10 px-6 py-2 text-sm font-bold text-white/70 hover:text-white hover:bg-white/5 transition-all cursor-pointer">
+              className="mt-5 rounded-lg border border-white/10 px-5 py-1.5 text-xs font-bold text-white/70 hover:text-white hover:bg-white/5 transition-all cursor-pointer">
               Back to Sign In
             </button>
           </div>
