@@ -24,6 +24,6 @@ These are kept secret on the server. Do **not** prefix these with `NEXT_PUBLIC_`
 | `OPENAI_FORMATTING_MODEL` | No | Model to use for formatting. Defaults to `gpt-4o-mini`. | `gpt-4o-mini` |
 | `GOOGLE_AI_STUDIO_API_KEY` | Yes* | Gemini API Key (Required if `OCR_PROVIDER=google-ai-studio`). | `AIza...` |
 | `GOOGLE_AI_STUDIO_MODEL` | No | Gemini model to use. Defaults to `gemini-2.5-flash`. | `gemini-2.5-flash` |
-| `GOOGLE_CLOUD_VISION_API_KEY` | Yes* | Google Cloud Vision API Key (Required for two-step Vision+OpenAI workflow). | `AIzaSy...` |
+| `Google_Vision_ApI` | Yes* | Google Cloud Vision API Key (Required for two-step Vision+OpenAI workflow). | `AIzaSy...` |
 
 > *At least one AI provider must be configured depending on the chosen `OCR_PROVIDER`.*

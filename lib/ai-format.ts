@@ -31,8 +31,8 @@ async function withRetry<T>(
 // ─── Two-step: Google Vision OCR → OpenAI Formatting ─────────────────────────
 
 async function extractWithGoogleVision(buffer: Buffer): Promise<string> {
-  const apiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
-  if (!apiKey) throw new Error("GOOGLE_CLOUD_VISION_API_KEY is missing");
+  const apiKey = process.env.Google_Vision_ApI;
+  if (!apiKey) throw new Error("Google_Vision_ApI is missing");
 
   const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
     method: "POST",
@@ -67,7 +67,7 @@ export async function extractAndFormatPage(
   mimeType: string,
   language: string
 ): Promise<{ ocrText: string; html: string }> {
-  const visionApiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
+  const visionApiKey = process.env.Google_Vision_ApI;
   const openaiApiKey = process.env.OPENAI_API_KEY;
 
   // Primary workflow: Google Vision + OpenAI
