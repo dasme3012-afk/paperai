@@ -28,28 +28,81 @@ async function withRetry<T>(
   throw new Error(`${label} failed after ${maxRetries} retries`);
 }
 
-// Single-pass: image → formatted HTML directly (skips the OCR→text→format two-step)
-// This halves the processing time per page with no quality loss.
+// ─── Two-step: Google Vision OCR → OpenAI Formatting ─────────────────────────
+
+async function extractWithGoogleVision(buffer: Buffer): Promise<string> {
+  const apiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
+  if (!apiKey) throw new Error("GOOGLE_CLOUD_VISION_API_KEY is missing");
+
+  const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      requests: [
+        {
+          image: { content: buffer.toString("base64") },
+          features: [{ type: "DOCUMENT_TEXT_DETECTION" }]
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Google Vision API failed: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const rawText = data.responses?.[0]?.fullTextAnnotation?.text;
+  if (!rawText) {
+    throw new Error("Google Vision API returned no text");
+  }
+
+  return rawText;
+}
+
+// ─── Main Router ─────────────────────────────────────────────────────────────
+
 export async function extractAndFormatPage(
   buffer: Buffer,
   mimeType: string,
   language: string
 ): Promise<{ ocrText: string; html: string }> {
-  const apiKey = process.env.GOOGLE_AI_STUDIO_API_KEY;
-  if (!apiKey) {
-    return extractAndFormatOpenAI(buffer, mimeType, language);
+  const visionApiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+
+  // Primary workflow: Google Vision + OpenAI
+  if (visionApiKey && openaiApiKey) {
+    try {
+      log.info("Using primary workflow: Google Vision + GPT-4o-mini");
+      const ocrText = await withRetry(() => extractWithGoogleVision(buffer), "Google Vision OCR");
+      const html = await withRetry(() => formatQuestionPaper(ocrText, language), "OpenAI Formatting");
+      return { ocrText, html };
+    } catch (error) {
+      log.warn("Primary workflow failed, falling back to Gemini", { error: String(error) });
+      // Fallback to Gemini automatically handled below
+    }
   }
-  return extractAndFormatGemini(buffer, mimeType, language);
+
+  // Fallback workflow: Gemini (or OpenAI vision as last resort)
+  const geminiApiKey = process.env.GOOGLE_AI_STUDIO_API_KEY;
+  if (geminiApiKey) {
+    log.info("Using fallback workflow: Gemini 2.5 single-pass");
+    return extractAndFormatGemini(buffer, mimeType, language);
+  }
+
+  log.info("Using fallback workflow: OpenAI single-pass");
+  return extractAndFormatOpenAI(buffer, mimeType, language);
 }
 
-// Legacy text-only formatter (used as fallback when only text is available)
+// Legacy text-only formatter (used in the two-step workflow)
 export async function formatQuestionPaper(ocrText: string, language: string) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return formatWithGoogleAiStudio(ocrText, language);
   }
   const client = new OpenAI({ apiKey });
-  const model = process.env.OPENAI_FORMATTING_MODEL ?? "gpt-4o";
+  // Switched default to gpt-4o-mini as requested
+  const model = process.env.OPENAI_FORMATTING_MODEL ?? "gpt-4o-mini";
   const response = await client.chat.completions.create({
     model,
     temperature: 0.1,
