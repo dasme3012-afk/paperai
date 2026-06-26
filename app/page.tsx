@@ -6,14 +6,7 @@ import dynamic from "next/dynamic";
 import { Zap, Sparkles, Loader2 } from "lucide-react";
 import { PricingSection } from "@/components/pricing-section";
 
-const HomeUploadZone = dynamic(() => import("@/components/home-upload-zone").then(m => m.HomeUploadZone), {
-  loading: () => (
-    <div className="flex h-64 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-      <Loader2 className="animate-spin text-brand" size={32} />
-    </div>
-  ),
-  ssr: false, // Heavy client-side component (pdfjs, tiptap)
-});
+import { HomeUploadZone } from "@/components/home-upload-zone";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { LoginModal } from "@/components/login-modal";
 import { toast } from "sonner";
@@ -23,6 +16,14 @@ export default function HomePage() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   useEffect(() => {
+    // Check for auth errors in URL
+    const params = new URLSearchParams(window.location.search);
+    const errorMsg = params.get("error");
+    if (errorMsg) {
+      setTimeout(() => toast.error(`Auth Error: ${errorMsg}`), 100);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     const supabase = createBrowserClient();
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
@@ -119,8 +120,13 @@ export default function HomePage() {
         </p>
       </section>
 
+      {/* Upload + Inline Editor (Moved up for immediate access) */}
+      <section className="mx-auto max-w-3xl px-5 pb-10">
+        <HomeUploadZone />
+      </section>
+
       {/* How to Use Section */}
-      <section id="how-to-use" className="mx-auto max-w-5xl px-5 pb-20 pt-10 border-t border-white/5 mt-10">
+      <section id="how-to-use" className="mx-auto max-w-5xl px-5 pb-20 pt-10 border-t border-white/5 mt-6">
         <div className="mb-12 text-center">
           <h2 className="text-3xl font-bold mb-4">How to Use Textipe</h2>
           <p className="text-white/60">Follow these simple steps to digitize your exam papers instantly.</p>
@@ -153,7 +159,7 @@ export default function HomePage() {
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-brand/20 text-brand font-bold border border-brand/30">1</div>
               <div>
                 <h3 className="text-xl font-bold mb-1">Upload your papers</h3>
-                <p className="text-white/60 text-sm leading-relaxed">Drag and drop photos or PDF scans of your exam papers into the upload zone below. You can upload up to 25 files at once.</p>
+                <p className="text-white/60 text-sm leading-relaxed">Drag and drop photos or PDF scans of your exam papers into the upload zone above. You can upload up to 25 files at once.</p>
               </div>
             </div>
             <div className="flex gap-4">
@@ -171,11 +177,6 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Upload + Inline Editor */}
-        <div className="mx-auto max-w-3xl">
-          <HomeUploadZone />
         </div>
       </section>
 
