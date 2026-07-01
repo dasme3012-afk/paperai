@@ -2,7 +2,7 @@ import { MetadataRoute } from "next";
 import { TOOLS_LIST } from "@/lib/tools-data";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://textipe.app";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://textipe.com";
 
   const staticPages = [
     {

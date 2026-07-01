@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const tool = TOOLS_LIST.find((t) => t.id === toolSlug);
   if (!tool) return {};
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://textipe.app";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://textipe.com";
   const canonicalUrl = `${baseUrl}/tools/${tool.id}`;
 
   return {
