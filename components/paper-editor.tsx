@@ -23,7 +23,7 @@ import {
   Download, Heading1, Heading2, Heading3, ImagePlus, Italic, Strikethrough,
   List, ListOrdered, RotateCcw, RotateCw, Save, Table2, Grid3X3,
   UnderlineIcon, ZoomIn, ZoomOut, PanelLeftClose, PanelLeftOpen,
-  SeparatorHorizontal, Minus, Printer, Sparkles
+  SeparatorHorizontal, Minus, Printer, Sparkles, MoreVertical, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 import type { PaperPage, PaperProject } from "@/lib/types";
@@ -65,6 +65,7 @@ export function PaperEditor({ project, demoMode = false }: Props) {
   const [pageSize, setPageSize] = useState<"a4" | "letter" | "legal">(project.pageSize || "a4");
   const [pageOrientation, setPageOrientation] = useState<"portrait" | "landscape">(project.pageOrientation || "portrait");
   const [showWatermark, setShowWatermark] = useState(true);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // Show original panel by default
 
@@ -285,7 +286,8 @@ export function PaperEditor({ project, demoMode = false }: Props) {
           {demoMode ? "Demo" : saving ? "Saving…" : dirty ? "● Unsaved" : "✓ Saved"}
         </span>
 
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Desktop Controls (lg and wider) */}
+        <div className="hidden lg:flex items-center gap-1.5 flex-shrink-0">
           <button
             onClick={() => setShowOriginal((v) => !v)}
             title={showOriginal ? "Hide original" : "Show original"}
@@ -362,6 +364,111 @@ export function PaperEditor({ project, demoMode = false }: Props) {
             <Download size={11} />
             <span>{exporting === "docx" ? "DOCX..." : "DOCX"}</span>
           </button>
+        </div>
+
+        {/* Mobile Controls (smaller than lg) */}
+        <div className="lg:hidden flex items-center gap-2 flex-shrink-0 relative">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="flex h-7 w-7 items-center justify-center rounded border border-white/10 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+            title="Save changes"
+          >
+            {saving ? <Loader2 size={13} className="animate-spin text-white/40" /> : <Save size={13} />}
+          </button>
+
+          <button
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            className="flex h-7 w-7 items-center justify-center rounded border border-white/10 text-white/70 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+            title="More Options"
+          >
+            <MoreVertical size={13} />
+          </button>
+
+          {showMobileMenu && (
+            <>
+              {/* Backdrop to close click outside */}
+              <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowMobileMenu(false)} />
+              
+              {/* Floating mobile options popup */}
+              <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-white/10 bg-[#121220] p-2 shadow-2xl z-50 flex flex-col gap-1 text-xs font-bold text-white/80">
+                <button
+                  onClick={() => { setShowOriginal((v) => !v); setShowMobileMenu(false); }}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 hover:bg-white/5 text-left cursor-pointer"
+                >
+                  {showOriginal ? <PanelLeftClose size={13} /> : <PanelLeftOpen size={13} />}
+                  <span>{showOriginal ? "Hide Original" : "Show Original"}</span>
+                </button>
+
+                <button
+                  onClick={() => { setShowWatermark((v) => !v); setShowMobileMenu(false); }}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 hover:bg-white/5 text-left cursor-pointer"
+                >
+                  <Sparkles size={13} className={showWatermark ? "text-blue-400" : ""} />
+                  <span>{showWatermark ? "Hide Watermark" : "Show Watermark"}</span>
+                </button>
+
+                <div className="h-px bg-white/5 my-0.5" />
+
+                {/* Page Size select inside menu */}
+                <div className="flex items-center justify-between px-2.5 py-1">
+                  <span>Page Size</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => { setPageSize(e.target.value as any); setDirty(true); }}
+                    style={{ background: "#1b1b2f", border: "1px solid rgba(255,255,255,0.15)" }}
+                    className="h-6 px-1.5 text-[10px] text-white rounded outline-none cursor-pointer"
+                  >
+                    <option value="a4">A4</option>
+                    <option value="letter">Letter</option>
+                    <option value="legal">Legal</option>
+                  </select>
+                </div>
+
+                {/* Orientation select inside menu */}
+                <div className="flex items-center justify-between px-2.5 py-1">
+                  <span>Orientation</span>
+                  <select
+                    value={pageOrientation}
+                    onChange={(e) => { setPageOrientation(e.target.value as any); setDirty(true); }}
+                    style={{ background: "#1b1b2f", border: "1px solid rgba(255,255,255,0.15)" }}
+                    className="h-6 px-1.5 text-[10px] text-white rounded outline-none cursor-pointer"
+                  >
+                    <option value="portrait">Portrait</option>
+                    <option value="landscape">Landscape</option>
+                  </select>
+                </div>
+
+                <div className="h-px bg-white/5 my-0.5" />
+
+                <button
+                  onClick={() => { handlePrint(); setShowMobileMenu(false); }}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 hover:bg-white/5 text-left cursor-pointer"
+                >
+                  <Printer size={13} />
+                  <span>Print Paper</span>
+                </button>
+
+                <button
+                  disabled={exporting !== null}
+                  onClick={() => { downloadPdf(); setShowMobileMenu(false); }}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-left disabled:opacity-50 cursor-pointer"
+                >
+                  <Download size={13} />
+                  <span>{exporting === "pdf" ? "PDF..." : "Download PDF"}</span>
+                </button>
+
+                <button
+                  disabled={exporting !== null}
+                  onClick={() => { downloadDocx(); setShowMobileMenu(false); }}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 border border-white/20 hover:bg-white/5 text-left disabled:opacity-50 cursor-pointer"
+                >
+                  <Download size={13} />
+                  <span>{exporting === "docx" ? "DOCX..." : "Download DOCX"}</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
