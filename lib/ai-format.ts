@@ -95,16 +95,42 @@ export async function formatQuestionPaper(ocrText: string, language: string, sou
   }
   const client = new OpenAI({ apiKey });
   const model = process.env.OPENAI_FORMATTING_MODEL ?? "gpt-4o-mini";
+  
   const imgInstruction = sourceUrl
-    ? `\nIMPORTANT: When you encounter descriptions of diagrams, charts, graphs, images, or illustrations in the OCR text, insert this exact img tag: <img src="${sourceUrl}" alt="Source page image" style="max-width:100%;margin:12px auto;display:block;border:1px solid #e5e7eb;border-radius:4px;" />`
+    ? `\nIMPORTANT: Look at the attached image. Identify where diagrams, charts, graphs, figures, or visual illustrations are located. You MUST insert this exact img tag at the corresponding location in the HTML structure: <img src="${sourceUrl}" alt="Source page image" style="max-width:100%;margin:12px auto;display:block;border:1px solid #e5e7eb;border-radius:4px;" />`
     : "\nFor any diagrams, charts, graphs, images, or illustrations, insert the exact text [DIAGRAM HERE].";
+
+  const messages: any[] = [
+    { role: "system", content: SYSTEM_PROMPT + imgInstruction }
+  ];
+
+  if (sourceUrl && (sourceUrl.startsWith("http") || sourceUrl.startsWith("data:"))) {
+    messages.push({
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: `Here is the raw OCR text extracted from the document:\n\n${ocrText}\n\nLanguage hint: ${language}.\nFormat this OCR text into clean HTML. Look at the attached image to locate where diagrams, illustrations, math drawings, or figures are positioned and embed the img tags exactly where they belong in the sequence of questions.`
+        },
+        {
+          type: "image_url",
+          image_url: {
+            url: sourceUrl
+          }
+        }
+      ]
+    });
+  } else {
+    messages.push({
+      role: "user",
+      content: `Language hint: ${language}\n\nOCR TEXT:\n${ocrText}`
+    });
+  }
+
   const response = await client.chat.completions.create({
     model,
     temperature: 0.1,
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT + imgInstruction },
-      { role: "user", content: `Language hint: ${language}\n\nOCR TEXT:\n${ocrText}` }
-    ]
+    messages
   });
   return sanitizeHtml(cleanHtml(response.choices[0]?.message.content ?? "<p></p>"));
 }

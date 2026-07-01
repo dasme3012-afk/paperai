@@ -23,7 +23,7 @@ import {
   Download, Heading1, Heading2, Heading3, ImagePlus, Italic, Strikethrough,
   List, ListOrdered, RotateCcw, RotateCw, Save, Table2, Grid3X3,
   UnderlineIcon, ZoomIn, ZoomOut, PanelLeftClose, PanelLeftOpen,
-  SeparatorHorizontal, Minus, Printer
+  SeparatorHorizontal, Minus, Printer, Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 import type { PaperPage, PaperProject } from "@/lib/types";
@@ -64,6 +64,7 @@ export function PaperEditor({ project, demoMode = false }: Props) {
   const [showOriginal, setShowOriginal] = useState(true);
   const [pageSize, setPageSize] = useState<"a4" | "letter" | "legal">(project.pageSize || "a4");
   const [pageOrientation, setPageOrientation] = useState<"portrait" | "landscape">(project.pageOrientation || "portrait");
+  const [showWatermark, setShowWatermark] = useState(true);
 
   // Show original panel by default
 
@@ -292,6 +293,15 @@ export function PaperEditor({ project, demoMode = false }: Props) {
           >
             {showOriginal ? <PanelLeftClose size={13} /> : <PanelLeftOpen size={13} />}
             <span>{showOriginal ? "Hide Original" : "Show Original"}</span>
+          </button>
+
+          <button
+            onClick={() => setShowWatermark((v) => !v)}
+            title={showWatermark ? "Hide original page watermark" : "Show original page watermark"}
+            className="flex h-7 px-2.5 items-center gap-1 rounded border border-white/10 text-xs font-semibold text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <Sparkles size={13} className={showWatermark ? "text-blue-400" : ""} />
+            <span>{showWatermark ? "Hide Watermark" : "Show Watermark"}</span>
           </button>
 
           <div className="w-px h-4 bg-white/10 mx-1" />
@@ -589,13 +599,32 @@ export function PaperEditor({ project, demoMode = false }: Props) {
               }}
               className="page-content"
             >
+              {/* Original Watermark Overlay */}
+              {showWatermark && active?.sourceUrl && active.sourceType === "image" && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    backgroundImage: `url(${active.sourceUrl})`,
+                    backgroundSize: "contain",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                    opacity: 0.12, // subtle guiding watermark
+                    pointerEvents: "none",
+                    zIndex: 0
+                  }}
+                />
+              )}
+
               {/* Page indicator */}
-              <div style={{ position: "absolute", top: 10, right: 14, fontSize: 10, color: "#9ca3af", fontFamily: "monospace", userSelect: "none" }}>
+              <div style={{ position: "absolute", top: 10, right: 14, fontSize: 10, color: "#9ca3af", fontFamily: "monospace", userSelect: "none", zIndex: 1 }}>
                 Page {active.pageNumber} {pages.length > 1 && `of ${pages.length}`}
               </div>
 
               {/* TipTap editable content */}
-              <EditorContent editor={editor} />
+              <div className="relative z-10">
+                <EditorContent editor={editor} />
+              </div>
             </div>
 
             {/* Page navigation footer when multiple pages */}
