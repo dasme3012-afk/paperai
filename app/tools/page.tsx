@@ -53,6 +53,7 @@ function ToolsContent() {
   const router = useRouter();
   const activeToolParam = searchParams.get("tool") as ToolId;
   const [activeTool, setActiveTool] = useState<ToolId>(activeToolParam || "pdf-to-jpg");
+  const workspaceRef = useRef<HTMLDivElement>(null);
 
   // Keep state synced with URL parameter
   useEffect(() => {
@@ -60,6 +61,15 @@ function ToolsContent() {
       setActiveTool(activeToolParam);
     }
   }, [activeToolParam]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      const timer = setTimeout(() => {
+        workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTool]);
 
   const selectTool = (id: ToolId) => {
     setActiveTool(id);
@@ -118,7 +128,7 @@ function ToolsContent() {
         </aside>
 
         {/* Workspace Card */}
-        <section className="flex-1 min-w-0">
+        <section ref={workspaceRef} className="flex-1 min-w-0">
           <div className="rounded-2xl border border-white/10 bg-[#121220] p-6 md:p-8 shadow-2xl min-h-[500px] flex flex-col">
             <div className="border-b border-white/10 pb-4 mb-6">
               <h1 className="text-2xl font-black">{TOOLS_LIST.find(t => t.id === activeTool)?.name}</h1>
