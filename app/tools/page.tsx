@@ -19,7 +19,8 @@ type ToolId =
   | "rotate-pdf"
   | "image-resizer"
   | "image-compressor"
-  | "image-converter"
+  | "convert-to-jpg"
+  | "convert-from-jpg"
   | "crop-image"
   | "rotate-image"
   | "word-counter";
@@ -40,7 +41,8 @@ const TOOLS_LIST: ToolInfo[] = [
   { id: "rotate-pdf", name: "Rotate PDF", desc: "Rotate pages in a PDF document and save them", category: "PDF", icon: RotateCw },
   { id: "image-resizer", name: "Image Resizer", desc: "Resize dimensions of your PNG, JPG, or WebP images", category: "Image", icon: Maximize },
   { id: "image-compressor", name: "Image Compressor", desc: "Reduce file size of your images with quality control", category: "Image", icon: Minimize2 },
-  { id: "image-converter", name: "Image Converter", desc: "Convert images between PNG, JPG, and WebP formats", category: "Image", icon: RefreshCw },
+  { id: "convert-to-jpg", name: "Convert to JPG", desc: "Turn PNG, GIF, SVG, WEBP, and HEIC images to JPG in bulk", category: "Image", icon: RefreshCw },
+  { id: "convert-from-jpg", name: "Convert from JPG", desc: "Turn JPG images to PNG and compile animated GIFs", category: "Image", icon: ImageIcon },
   { id: "crop-image", name: "Crop Image", desc: "Crop borders or select area from your images", category: "Image", icon: Crop },
   { id: "rotate-image", name: "Rotate Image", desc: "Rotate JPG, PNG, and WebP images and save them", category: "Image", icon: RotateCw },
   { id: "word-counter", name: "Word Counter", desc: "Count words, characters, and reading time in real-time", category: "Text", icon: ClipboardType },
@@ -157,7 +159,8 @@ function ActiveToolWorkspace({ toolId }: { toolId: ToolId }) {
     case "rotate-pdf": return <RotatePdfTool />;
     case "image-resizer": return <ImageResizerTool />;
     case "image-compressor": return <ImageCompressorTool />;
-    case "image-converter": return <ImageConverterTool />;
+    case "convert-to-jpg": return <ConvertToJpgTool />;
+    case "convert-from-jpg": return <ConvertFromJpgTool />;
     case "crop-image": return <CropImageTool />;
     case "rotate-image": return <RotateImageTool />;
     case "word-counter": return <WordCounterTool />;
@@ -867,55 +870,410 @@ function ImageCompressorTool() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 8. Image Converter Tool
+// 8. Convert to JPG Tool
 // ─────────────────────────────────────────────────────────────────────────────
-function ImageConverterTool() {
-  const [file, setFile] = useState<File | null>(null);
-  const [imgUrl, setImgUrl] = useState("");
-  const [format, setFormat] = useState("image/jpeg");
+interface ConvertFileItem {
+  id: string;
+  name: string;
+  size: string;
+  file: File;
+  previewUrl: string;
+  status: "pending" | "converting" | "ready" | "error";
+  errorMsg?: string;
+  resultUrl?: string;
+}
 
-  const convertAndDownload = () => {
-    const img = new Image();
-    img.src = imgUrl;
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        const a = document.createElement("a");
-        a.href = canvas.toDataURL(format, 0.9);
-        const ext = format === "image/jpeg" ? "jpg" : format === "image/png" ? "png" : "webp";
-        a.download = `${file?.name.replace(/\.[^.]+$/, "")}.${ext}`;
-        a.click();
-      }
-    };
+function ConvertToJpgTool() {
+  const [files, setFiles] = useState<ConvertFileItem[]>([]);
+  const [converting, setConverting] = useState(false);
+
+  const addFiles = (selectedFiles: FileList) => {
+    const list: ConvertFileItem[] = [];
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const f = selectedFiles[i];
+      list.push({
+        id: Math.random().toString(36).substring(2),
+        name: f.name,
+        size: (f.size / 1024).toFixed(1) + " KB",
+        file: f,
+        previewUrl: f.type.startsWith("image/") ? URL.createObjectURL(f) : "",
+        status: "pending"
+      });
+    }
+    setFiles(prev => [...prev, ...list]);
   };
 
-  if (file) {
+  const removeFile = (id: string) => {
+    setFiles(prev => prev.filter(item => {
+      if (item.id === id) {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+        if (item.resultUrl) URL.revokeObjectURL(item.resultUrl);
+        return false;
+      }
+      return true;
+    }));
+  };
+
+  const convertToJpg = async () => {
+    setConverting(true);
+    const updatedFiles = [...files];
+
+    for (let i = 0; i < updatedFiles.length; i++) {
+      const item = updatedFiles[i];
+      if (item.status === "ready") continue;
+
+      updatedFiles[i] = { ...item, status: "converting" };
+      setFiles([...updatedFiles]);
+
+      try {
+        let imageBlob: Blob;
+        const fileExt = item.name.split(".").pop()?.toLowerCase();
+
+        if (fileExt === "heic" || item.file.type === "image/heic") {
+          const heic2any = (await import("heic2any")).default;
+          const result = await heic2any({
+            blob: item.file,
+            toType: "image/jpeg",
+            quality: 0.9
+          });
+          imageBlob = Array.isArray(result) ? result[0] : result;
+        } else if (fileExt === "tif" || fileExt === "tiff" || fileExt === "psd" || fileExt === "raw") {
+          throw new Error(`Format .${fileExt} requires backend parsing. Only PNG, GIF, SVG, WEBP, and HEIC are supported client-side.`);
+        } else {
+          // Standard browser image load to canvas
+          imageBlob = await new Promise<Blob>((resolve, reject) => {
+            const img = new Image();
+            img.src = URL.createObjectURL(item.file);
+            img.onload = () => {
+              const canvas = document.createElement("canvas");
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext("2d");
+              if (ctx) {
+                ctx.drawImage(img, 0, 0);
+                canvas.toBlob(
+                  (b) => (b ? resolve(b) : reject(new Error("Canvas conversion failed"))),
+                  "image/jpeg",
+                  0.9
+                );
+              } else {
+                reject(new Error("Canvas context failed"));
+              }
+            };
+            img.onerror = () => reject(new Error("Failed to load image"));
+          });
+        }
+
+        const resultUrl = URL.createObjectURL(imageBlob);
+        updatedFiles[i] = {
+          ...item,
+          status: "ready",
+          resultUrl
+        };
+      } catch (err: any) {
+        updatedFiles[i] = {
+          ...item,
+          status: "error",
+          errorMsg: err?.message || "Failed to convert"
+        };
+      }
+      setFiles([...updatedFiles]);
+    }
+    setConverting(false);
+  };
+
+  const downloadAll = () => {
+    files.forEach((item) => {
+      if (item.resultUrl) {
+        const a = document.createElement("a");
+        a.href = item.resultUrl;
+        a.download = `${item.name.replace(/\.[^.]+$/, "")}.jpg`;
+        a.click();
+      }
+    });
+  };
+
+  if (files.length) {
     return (
-      <div className="space-y-6 max-w-sm mx-auto">
-        <div className="relative aspect-video border border-white/10 rounded-xl overflow-hidden bg-black/40">
-          <img src={imgUrl} alt="" className="w-full h-full object-contain" />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-white/50">{files.length} images selected</p>
+          <div className="flex gap-2">
+            <button onClick={() => { setFiles([]); }} className="text-xs border border-white/10 hover:bg-white/5 px-3 py-1.5 rounded-lg cursor-pointer">Clear All</button>
+            {files.some(f => f.status === "ready") && (
+              <button onClick={downloadAll} className="flex items-center gap-1.5 bg-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:bg-blue-500"><Download size={13} /> Download JPGs</button>
+            )}
+            <button onClick={convertToJpg} disabled={converting} className="flex items-center gap-1.5 bg-brand px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:brightness-110 disabled:opacity-50">
+              {converting ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+              <span>Convert to JPG</span>
+            </button>
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <label className="block text-xs font-bold text-white/60" htmlFor="target-fmt">Convert to Format</label>
-          <select id="target-fmt" value={format} onChange={(e) => setFormat(e.target.value)} style={{ background: "#1b1b2f", border: "1px solid rgba(255,255,255,0.15)" }} className="w-full h-9 px-3 text-xs text-white rounded-lg outline-none cursor-pointer focus:border-brand">
-            <option value="image/jpeg">JPG / JPEG</option>
-            <option value="image/png">PNG</option>
-            <option value="image/webp">WebP</option>
-          </select>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => { setFile(null); URL.revokeObjectURL(imgUrl); }} className="flex-1 text-xs border border-white/10 hover:bg-white/5 py-2.5 rounded-lg cursor-pointer">Back</button>
-          <button onClick={convertAndDownload} className="flex-1 bg-brand py-2.5 rounded-lg text-xs font-bold cursor-pointer hover:brightness-110 flex items-center justify-center gap-1"><Download size={13} /> Save Image</button>
+        <div className="space-y-2 max-h-[350px] overflow-y-auto p-2 border border-white/5 rounded-xl bg-black/25">
+          {files.map((item) => (
+            <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border border-white/5 bg-[#17172b]">
+              <div className="flex items-center gap-3 min-w-0">
+                {item.previewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.previewUrl} alt="" className="w-8 h-8 object-cover rounded border border-white/10" />
+                ) : (
+                  <div className="w-8 h-8 rounded bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold text-white/40">IMG</div>
+                )}
+                <div className="min-w-0">
+                  <span className="text-xs font-bold text-white/95 truncate pr-4 block">{item.name}</span>
+                  <span className="text-[10px] text-white/40 block mt-0.5">{item.size}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {item.status === "converting" && <span className="text-[10px] font-bold text-blue-400 flex items-center gap-1"><Loader2 size={10} className="animate-spin" /> Converting...</span>}
+                {item.status === "ready" && <span className="text-[10px] font-bold text-green-400">✓ Ready</span>}
+                {item.status === "error" && <span className="text-[10px] font-bold text-red-400" title={item.errorMsg}>Error</span>}
+                <button onClick={() => removeFile(item.id)} className="p-1 text-white/40 hover:text-red-400 transition-colors">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
-  return <DropZone onSelect={(fs) => { if (fs[0]) { setFile(fs[0]); setImgUrl(URL.createObjectURL(fs[0])); } }} accept="image/*" label="Select image to convert format" />;
+  return <DropZone onSelect={addFiles} accept="image/*,.heic" multiple label="Select PNG, WebP, GIF, SVG, or HEIC files to convert to JPG" />;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8b. Convert from JPG Tool
+// ─────────────────────────────────────────────────────────────────────────────
+function ConvertFromJpgTool() {
+  const [files, setFiles] = useState<ImageItem[]>([]);
+  const [converting, setConverting] = useState(false);
+  const [outputMode, setOutputMode] = useState<"png" | "gif-animated">("png");
+  const [gifSpeed, setGifSpeed] = useState(0.5); // seconds per frame
+  const [gifWidth, setGifWidth] = useState(640);
+  const [gifHeight, setGifHeight] = useState(480);
+  const [animatedGifUrl, setAnimatedGifUrl] = useState("");
+
+  const addFiles = (selectedFiles: FileList) => {
+    const list: ImageItem[] = [];
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const f = selectedFiles[i];
+      if (f.type.startsWith("image/") || f.name.endsWith(".jpg") || f.name.endsWith(".jpeg")) {
+        list.push({
+          id: Math.random().toString(36).substring(2),
+          file: f,
+          preview: URL.createObjectURL(f)
+        });
+      }
+    }
+    setFiles(prev => [...prev, ...list]);
+  };
+
+  const removeFile = (id: string) => {
+    setFiles(prev => prev.filter(img => {
+      if (img.id === id) { URL.revokeObjectURL(img.preview); return false; }
+      return true;
+    }));
+  };
+
+  const convertToPng = async () => {
+    setConverting(true);
+    try {
+      for (const item of files) {
+        const img = new Image();
+        img.src = item.preview;
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+              const a = document.createElement("a");
+              a.href = canvas.toDataURL("image/png");
+              a.download = `${item.file.name.replace(/\.[^.]+$/, "")}.png`;
+              a.click();
+              resolve();
+            } else {
+              reject(new Error("Canvas failure"));
+            }
+          };
+          img.onerror = () => reject(new Error("Failed to load image"));
+        });
+      }
+      toast.success("Images converted to PNG successfully!");
+    } catch {
+      toast.error("Failed to convert images.");
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  const makeAnimatedGif = async () => {
+    if (files.length < 2) {
+      toast.error("Please add at least 2 JPG images to create an animated GIF.");
+      return;
+    }
+    setConverting(true);
+    try {
+      const gifshot = (await import("gifshot")).default;
+      const imagesList: string[] = files.map(item => item.preview);
+
+      gifshot.createGIF({
+        images: imagesList,
+        interval: gifSpeed,
+        gifWidth: gifWidth,
+        gifHeight: gifHeight,
+        numWorkers: 2,
+        frameDuration: gifSpeed * 10
+      }, (obj: any) => {
+        if (!obj.error) {
+          setAnimatedGifUrl(obj.image);
+          toast.success("Animated GIF created!");
+        } else {
+          toast.error("Failed to compile GIF: " + obj.errorMsg);
+        }
+        setConverting(false);
+      });
+    } catch (err: any) {
+      toast.error("Error creating GIF: " + err.message);
+      setConverting(false);
+    }
+  };
+
+  const downloadAnimatedGif = () => {
+    if (!animatedGifUrl) return;
+    const a = document.createElement("a");
+    a.href = animatedGifUrl;
+    a.download = "animated_photo.gif";
+    a.click();
+  };
+
+  if (converting) {
+    return (
+      <div className="text-center py-10">
+        <Loader2 className="animate-spin text-brand mx-auto mb-4" size={32} />
+        <p className="text-sm font-semibold text-white/70">Processing files...</p>
+      </div>
+    );
+  }
+
+  if (files.length) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setOutputMode("png"); setAnimatedGifUrl(""); }}
+              className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer transition-all border ${
+                outputMode === "png"
+                  ? "bg-brand text-white border-brand"
+                  : "border-white/10 text-white/60 hover:bg-white/5"
+              }`}
+            >
+              Convert to PNG
+            </button>
+            <button
+              onClick={() => { setOutputMode("gif-animated"); }}
+              className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer transition-all border ${
+                outputMode === "gif-animated"
+                  ? "bg-brand text-white border-brand"
+                  : "border-white/10 text-white/60 hover:bg-white/5"
+              }`}
+            >
+              Create Animated GIF
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => { setFiles([]); setAnimatedGifUrl(""); }} className="text-xs border border-white/10 hover:bg-white/5 px-3 py-1.5 rounded-lg cursor-pointer">Clear All</button>
+            {outputMode === "png" ? (
+              <button onClick={convertToPng} className="flex items-center gap-1.5 bg-brand px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:brightness-110"><RefreshCw size={13} /> Convert to PNG</button>
+            ) : (
+              <>
+                {animatedGifUrl && (
+                  <button onClick={downloadAnimatedGif} className="flex items-center gap-1.5 bg-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:bg-blue-500"><Download size={13} /> Save GIF</button>
+                )}
+                <button onClick={makeAnimatedGif} className="flex items-center gap-1.5 bg-brand px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:brightness-110"><Plus size={13} /> Compile GIF</button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {outputMode === "gif-animated" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-black/20 p-4 border border-white/5 rounded-xl">
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider">GIF Animation Settings</h3>
+              
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-bold text-white/60">
+                  <label htmlFor="gif-delay">Speed (seconds per frame)</label>
+                  <span>{gifSpeed}s</span>
+                </div>
+                <input
+                  id="gif-delay"
+                  type="range"
+                  min="0.1"
+                  max="3.0"
+                  step="0.1"
+                  value={gifSpeed}
+                  onChange={(e) => setGifSpeed(parseFloat(e.target.value))}
+                  className="w-full accent-brand"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold text-white/60" htmlFor="gif-w">Width (px)</label>
+                  <input id="gif-w" type="number" value={gifWidth} onChange={(e) => setGifWidth(parseInt(e.target.value) || 320)} className="w-full rounded-lg border border-white/10 bg-[#17172b] px-3 py-1.5 text-xs outline-none focus:border-brand text-white" />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold text-white/60" htmlFor="gif-h">Height (px)</label>
+                  <input id="gif-h" type="number" value={gifHeight} onChange={(e) => setGifHeight(parseInt(e.target.value) || 240)} className="w-full rounded-lg border border-white/10 bg-[#17172b] px-3 py-1.5 text-xs outline-none focus:border-brand text-white" />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center justify-center border-l border-white/5 pl-6 min-h-[200px]">
+              {animatedGifUrl ? (
+                <div className="space-y-2 text-center">
+                  <p className="text-[10px] font-bold text-green-400">✓ Compilation Complete</p>
+                  <div className="border border-white/10 rounded-lg overflow-hidden max-h-[200px] max-w-[250px] bg-black">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={animatedGifUrl} alt="Compiled GIF Preview" className="w-full h-full object-contain" />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center space-y-1">
+                  <ImageIcon size={28} className="mx-auto text-white/20" />
+                  <p className="text-xs text-white/40">Preview will appear here after compiling.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 max-h-[350px] overflow-y-auto p-3 border border-white/5 rounded-xl bg-black/25">
+          {files.map((img) => (
+            <div key={img.id} className="relative group aspect-[3/4] rounded-lg overflow-hidden border border-white/10 bg-black">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={img.preview} alt="" className="w-full h-full object-cover" />
+              <button onClick={() => removeFile(img.id)} className="absolute top-1 right-1 p-1 bg-red-600/80 text-white rounded hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+          <label className="flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-lg hover:border-white/20 bg-white/5 cursor-pointer transition-colors aspect-[3/4]">
+            <input type="file" className="hidden" accept="image/jpeg,image/jpg" multiple onChange={(e) => e.target.files && addFiles(e.target.files)} />
+            <Plus size={20} className="text-white/40 mb-1" />
+            <span className="text-[10px] font-bold text-white/50">Add more</span>
+          </label>
+        </div>
+      </div>
+    );
+  }
+
+  return <DropZone onSelect={addFiles} accept="image/jpeg,image/jpg" multiple label="Select JPG image files to convert or stitch into a GIF" />;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

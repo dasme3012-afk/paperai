@@ -42,7 +42,8 @@ export function AppHeader() {
               <div className="my-1 h-px bg-black/5 dark:bg-white/5" />
               <Link href="/tools?tool=image-resizer" className="block rounded-lg px-3 py-1.5 text-xs font-bold text-black/70 dark:text-white/70 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5">Image Resizer</Link>
               <Link href="/tools?tool=image-compressor" className="block rounded-lg px-3 py-1.5 text-xs font-bold text-black/70 dark:text-white/70 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5">Image Compressor</Link>
-              <Link href="/tools?tool=image-converter" className="block rounded-lg px-3 py-1.5 text-xs font-bold text-black/70 dark:text-white/70 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5">Image Converter</Link>
+              <Link href="/tools?tool=convert-to-jpg" className="block rounded-lg px-3 py-1.5 text-xs font-bold text-black/70 dark:text-white/70 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5">Convert to JPG</Link>
+              <Link href="/tools?tool=convert-from-jpg" className="block rounded-lg px-3 py-1.5 text-xs font-bold text-black/70 dark:text-white/70 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5">Convert from JPG</Link>
               <Link href="/tools?tool=crop-image" className="block rounded-lg px-3 py-1.5 text-xs font-bold text-black/70 dark:text-white/70 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5">Crop Image</Link>
               <Link href="/tools?tool=rotate-image" className="block rounded-lg px-3 py-1.5 text-xs font-bold text-black/70 dark:text-white/70 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5">Rotate Image</Link>
               <div className="my-1 h-px bg-black/5 dark:bg-white/5" />
