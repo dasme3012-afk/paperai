@@ -21,6 +21,7 @@ type ToolId =
   | "image-compressor"
   | "image-converter"
   | "crop-image"
+  | "rotate-image"
   | "word-counter";
 
 interface ToolInfo {
@@ -41,6 +42,7 @@ const TOOLS_LIST: ToolInfo[] = [
   { id: "image-compressor", name: "Image Compressor", desc: "Reduce file size of your images with quality control", category: "Image", icon: Minimize2 },
   { id: "image-converter", name: "Image Converter", desc: "Convert images between PNG, JPG, and WebP formats", category: "Image", icon: RefreshCw },
   { id: "crop-image", name: "Crop Image", desc: "Crop borders or select area from your images", category: "Image", icon: Crop },
+  { id: "rotate-image", name: "Rotate Image", desc: "Rotate JPG, PNG, and WebP images and save them", category: "Image", icon: RotateCw },
   { id: "word-counter", name: "Word Counter", desc: "Count words, characters, and reading time in real-time", category: "Text", icon: ClipboardType },
 ];
 
@@ -157,6 +159,7 @@ function ActiveToolWorkspace({ toolId }: { toolId: ToolId }) {
     case "image-compressor": return <ImageCompressorTool />;
     case "image-converter": return <ImageConverterTool />;
     case "crop-image": return <CropImageTool />;
+    case "rotate-image": return <RotateImageTool />;
     case "word-counter": return <WordCounterTool />;
     default: return <div className="text-center text-white/40">Select a tool from the sidebar.</div>;
   }
@@ -1044,6 +1047,74 @@ function CropImageTool() {
   }
 
   return <DropZone onSelect={(fs) => { if (fs[0]) { setFile(fs[0]); setImgUrl(URL.createObjectURL(fs[0])); } }} accept="image/*" label="Select image to crop" />;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 9b. Rotate Image Tool
+// ─────────────────────────────────────────────────────────────────────────────
+function RotateImageTool() {
+  const [file, setFile] = useState<File | null>(null);
+  const [imgUrl, setImgUrl] = useState("");
+  const [rotation, setRotation] = useState<0 | 90 | 180 | 270>(0);
+
+  const rotate = () => {
+    if (!file) return;
+    const img = new Image();
+    img.src = imgUrl;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const angle = (rotation * Math.PI) / 180;
+      const isLandscape = rotation === 90 || rotation === 270;
+
+      canvas.width = isLandscape ? img.height : img.width;
+      canvas.height = isLandscape ? img.width : img.height;
+
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(angle);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+        const a = document.createElement("a");
+        a.href = canvas.toDataURL(file.type || "image/jpeg");
+        a.download = `rotated_${file.name}`;
+        a.click();
+      }
+    };
+  };
+
+  if (file) {
+    return (
+      <div className="space-y-6 max-w-xl mx-auto flex flex-col items-center w-full">
+        <div className="relative w-full max-h-[50vh] border border-white/10 rounded-2xl overflow-hidden bg-black/40 flex items-center justify-center p-4">
+          <img
+            src={imgUrl}
+            alt=""
+            style={{
+              transform: `rotate(${rotation}deg)`,
+              transition: "transform 0.2s ease",
+              maxWidth: "100%",
+              maxHeight: "45vh",
+              objectFit: "contain"
+            }}
+          />
+        </div>
+
+        <div className="flex gap-4">
+          <button onClick={() => setRotation((r) => ((r - 90 + 360) % 360) as any)} className="p-2 border border-white/10 hover:bg-white/5 rounded-lg text-xs font-bold flex items-center gap-1"><RotateCw className="scale-x-[-1]" size={14} /> Rotate Left</button>
+          <span className="text-sm font-black text-brand self-center">{rotation}°</span>
+          <button onClick={() => setRotation((r) => ((r + 90) % 360) as any)} className="p-2 border border-white/10 hover:bg-white/5 rounded-lg text-xs font-bold flex items-center gap-1">Rotate Right <RotateCw size={14} /></button>
+        </div>
+
+        <div className="flex gap-4 w-full max-w-md">
+          <button onClick={() => { setFile(null); URL.revokeObjectURL(imgUrl); setRotation(0); }} className="flex-1 text-xs border border-white/10 hover:bg-white/5 py-2.5 rounded-xl font-bold cursor-pointer transition-all">Back</button>
+          <button onClick={rotate} className="flex-1 bg-brand py-2.5 rounded-xl text-xs font-bold cursor-pointer hover:brightness-110 flex items-center justify-center gap-1.5 transition-all"><Download size={13} /> Save Image</button>
+        </div>
+      </div>
+    );
+  }
+
+  return <DropZone onSelect={(fs) => { if (fs[0]) { setFile(fs[0]); setImgUrl(URL.createObjectURL(fs[0])); } }} accept="image/*" label="Select image to rotate" />;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

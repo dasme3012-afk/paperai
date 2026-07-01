@@ -80,6 +80,7 @@ export default function HomePage() {
               <Link href="/tools?tool=image-compressor" className="block rounded-lg px-3 py-1.5 text-xs font-bold text-white/70 hover:text-white hover:bg-white/5">Image Compressor</Link>
               <Link href="/tools?tool=image-converter" className="block rounded-lg px-3 py-1.5 text-xs font-bold text-white/70 hover:text-white hover:bg-white/5">Image Converter</Link>
               <Link href="/tools?tool=crop-image" className="block rounded-lg px-3 py-1.5 text-xs font-bold text-white/70 hover:text-white hover:bg-white/5">Crop Image</Link>
+              <Link href="/tools?tool=rotate-image" className="block rounded-lg px-3 py-1.5 text-xs font-bold text-white/70 hover:text-white hover:bg-white/5">Rotate Image</Link>
               <div className="my-1 h-px bg-white/5" />
               <Link href="/tools?tool=word-counter" className="block rounded-lg px-3 py-1.5 text-xs font-bold text-white/70 hover:text-white hover:bg-white/5">Word Counter</Link>
             </div>
