@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Zap, Sparkles, Loader2 } from "lucide-react";
+import { Zap, Sparkles, Loader2, Menu, X } from "lucide-react";
 import { PricingSection } from "@/components/pricing-section";
 
 import { HomeUploadZone } from "@/components/home-upload-zone";
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 export default function HomePage() {
   const [user, setUser] = useState<any>(null);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
 
   useEffect(() => {
     // Check for auth errors in URL
@@ -54,7 +55,7 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#0a0a0f] text-white">
       {/* Nav */}
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
+      <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 relative">
         <div className="flex-1">
           <Link href="/" className="flex items-center select-none w-fit">
             <img src="/logo.png" alt="Textipe Logo" className="h-7 w-auto" />
@@ -119,7 +120,26 @@ export default function HomePage() {
               </button>
             </>
           )}
+
+          {/* Mobile hamburger menu */}
+          <button
+            onClick={() => setShowMobileNav(!showMobileNav)}
+            className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-white/70 hover:bg-white/5 hover:text-white transition-colors cursor-pointer ml-1"
+            title="Toggle Menu"
+          >
+            {showMobileNav ? <X size={18} /> : <Menu size={18} />}
+          </button>
         </div>
+
+        {/* Mobile dropdown navigation portal */}
+        {showMobileNav && (
+          <div className="md:hidden border-b border-white/10 bg-[#0c0c16] px-5 py-3.5 space-y-3 font-semibold text-white/75 text-xs absolute w-full left-0 top-full z-[999] shadow-2xl flex flex-col">
+            <Link href="/" onClick={() => setShowMobileNav(false)} className="hover:text-white py-1">Home</Link>
+            <Link href="/tools" onClick={() => setShowMobileNav(false)} className="text-blue-400 py-1 flex items-center gap-1">Free Tools Portal 🚀</Link>
+            <a href="#how-to-use" onClick={() => setShowMobileNav(false)} className="hover:text-white py-1">How to use</a>
+            <a href="#pricing" onClick={() => setShowMobileNav(false)} className="hover:text-white py-1">Pricing</a>
+          </div>
+        )}
       </nav>
 
       {/* Login Popup Modal */}
