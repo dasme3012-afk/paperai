@@ -51,6 +51,36 @@ export async function POST(request: Request) {
     }
 
     const supabase = createServiceSupabase();
+
+    // Check Subscription and Quota
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("plan_id, status")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const isFree = !sub || sub.plan_id === "free" || sub.status !== "active";
+
+    if (isFree) {
+      const { data: recentProjects } = await supabase
+        .from("projects")
+        .select("pages")
+        .eq("user_id", user.id)
+        .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+      
+      let pagesUsedIn24h = 0;
+      for (const p of recentProjects || []) {
+        pagesUsedIn24h += Array.isArray(p.pages) ? p.pages.length : 0;
+      }
+
+      if (pagesUsedIn24h + files.length > 5) {
+        const remaining = Math.max(0, 5 - pagesUsedIn24h);
+        return NextResponse.json({ 
+          error: `Free limit reached. You can only generate 5 pages per 24 hours. You have ${remaining} page(s) left today.` 
+        }, { status: 403 });
+      }
+    }
+
     const projectId = crypto.randomUUID();
 
     // STREAM RESPONSE
@@ -70,7 +100,8 @@ export async function POST(request: Request) {
             user_id: user.id,
             title,
             language,
-            status: "processing"
+            status: "processing",
+            pages: Array.from({ length: files.length }).map((_, i) => ({ id: `dummy-${i}` }))
           });
         } catch (err) {
           console.warn("Supabase project insert failed, falling back to mockDb:", err);
