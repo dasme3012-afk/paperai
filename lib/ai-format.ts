@@ -79,15 +79,8 @@ export async function extractAndFormatPage(
       const html = await withRetry(() => formatQuestionPaper(ocrText, language, sourceUrl), "OpenAI Formatting");
       return { ocrText, html };
     } catch (error) {
-      log.warn("Primary workflow failed, falling back to Gemini", { error: String(error) });
+      log.warn("Primary workflow failed, falling back to OpenAI single-pass", { error: String(error) });
     }
-  }
-
-  // Fallback workflow: Gemini (or OpenAI vision as last resort)
-  const geminiApiKey = process.env.GOOGLE_AI_STUDIO_API_KEY;
-  if (geminiApiKey) {
-    log.info("Using fallback workflow: Gemini 2.5 single-pass");
-    return extractAndFormatGemini(buffer, mimeType, language, sourceUrl);
   }
 
   log.info("Using fallback workflow: OpenAI single-pass");
