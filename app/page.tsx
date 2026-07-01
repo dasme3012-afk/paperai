@@ -107,7 +107,7 @@ export default function HomePage() {
       <section className="mx-auto max-w-6xl px-5 pt-10 pb-6 text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-white/70 mb-6">
           <Zap size={13} className="text-yellow-400" />
-          AI-powered OCR · Gemini 2.5 Pro
+          AI Powered OCR
         </div>
         <h1 className="text-5xl sm:text-7xl font-black leading-[1.05] tracking-tight mb-4">
           Digitize text<br />
