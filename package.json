@@ -35,6 +35,7 @@
     "lucide-react": "^0.468.0",
     "next": "^16.2.6",
     "openai": "^4.71.1",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^4.8.69",
     "razorpay": "^2.9.6",
     "react": "^18.3.1",
