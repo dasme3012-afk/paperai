@@ -31,12 +31,20 @@ export async function htmlToDocxBuffer(html: string, title: string, pageSize?: s
     </html>
   `;
 
-  const buffer = await HTMLtoDOCX(styledHtml, null, {
+  const generate = typeof HTMLtoDOCX === "function" ? HTMLtoDOCX : (HTMLtoDOCX as any).default;
+
+  let buffer = await generate(styledHtml, null, {
     title,
     orientation,
     margins: { top: 720, right: 720, bottom: 720, left: 720 },
     font: "Arial",
   });
+
+  if (typeof Blob !== "undefined" && buffer instanceof Blob) {
+    buffer = Buffer.from(await buffer.arrayBuffer());
+  } else if (buffer instanceof ArrayBuffer) {
+    buffer = Buffer.from(buffer);
+  }
 
   return buffer;
 }
