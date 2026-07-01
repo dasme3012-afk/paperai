@@ -1,14 +1,21 @@
 import { MetadataRoute } from "next";
+import { TOOLS_LIST } from "@/lib/tools-data";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://textipe.app";
 
-  return [
+  const staticPages = [
     {
       url: baseUrl,
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 1.0,
+    },
+    {
+      url: `${baseUrl}/tools`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
     },
     {
       url: `${baseUrl}/about`,
@@ -34,5 +41,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "yearly",
       priority: 0.5,
     },
-  ];
+  ] as MetadataRoute.Sitemap;
+
+  const toolPages = TOOLS_LIST.map((tool) => ({
+    url: `${baseUrl}/tools/${tool.id}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.8,
+  }));
+
+  return [...staticPages, ...toolPages];
 }

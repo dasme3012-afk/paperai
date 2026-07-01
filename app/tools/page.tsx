@@ -11,70 +11,10 @@ import {
 import { PDFDocument, degrees } from "pdf-lib";
 import { toast } from "sonner";
 
-type ToolId =
-  | "pdf-to-jpg"
-  | "jpg-to-pdf"
-  | "merge-pdf"
-  | "split-pdf"
-  | "rotate-pdf"
-  | "image-resizer"
-  | "image-compressor"
-  | "convert-to-jpg"
-  | "convert-from-jpg"
-  | "crop-image"
-  | "rotate-image"
-  | "word-counter";
+import { TOOLS_LIST, type ToolId } from "@/lib/tools-data";
 
-interface ToolInfo {
-  id: ToolId;
-  name: string;
-  desc: string;
-  category: "PDF" | "Image" | "Text";
-  icon: any;
-}
-
-const TOOLS_LIST: ToolInfo[] = [
-  { id: "pdf-to-jpg", name: "PDF to JPG", desc: "Extract PDF pages as individual images", category: "PDF", icon: FileText },
-  { id: "jpg-to-pdf", name: "JPG to PDF", desc: "Convert multiple images into a single PDF document", category: "PDF", icon: ImageIcon },
-  { id: "merge-pdf", name: "Merge PDF", desc: "Combine multiple PDF files into a single document", category: "PDF", icon: Combine },
-  { id: "split-pdf", name: "Split PDF", desc: "Extract specific pages from a PDF file", category: "PDF", icon: Scissors },
-  { id: "rotate-pdf", name: "Rotate PDF", desc: "Rotate pages in a PDF document and save them", category: "PDF", icon: RotateCw },
-  { id: "image-resizer", name: "Image Resizer", desc: "Resize dimensions of your PNG, JPG, or WebP images", category: "Image", icon: Maximize },
-  { id: "image-compressor", name: "Image Compressor", desc: "Reduce file size of your images with quality control", category: "Image", icon: Minimize2 },
-  { id: "convert-to-jpg", name: "Convert to JPG", desc: "Turn PNG, GIF, SVG, WEBP, and HEIC images to JPG in bulk", category: "Image", icon: RefreshCw },
-  { id: "convert-from-jpg", name: "Convert from JPG", desc: "Turn JPG images to PNG and compile animated GIFs", category: "Image", icon: ImageIcon },
-  { id: "crop-image", name: "Crop Image", desc: "Crop borders or select area from your images", category: "Image", icon: Crop },
-  { id: "rotate-image", name: "Rotate Image", desc: "Rotate JPG, PNG, and WebP images and save them", category: "Image", icon: RotateCw },
-  { id: "word-counter", name: "Word Counter", desc: "Count words, characters, and reading time in real-time", category: "Text", icon: ClipboardType },
-];
-
-function ToolsContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const activeToolParam = searchParams.get("tool") as ToolId;
-  const [activeTool, setActiveTool] = useState<ToolId>(activeToolParam || "pdf-to-jpg");
-  const workspaceRef = useRef<HTMLDivElement>(null);
-
-  // Keep state synced with URL parameter
-  useEffect(() => {
-    if (activeToolParam && TOOLS_LIST.some(t => t.id === activeToolParam)) {
-      setActiveTool(activeToolParam);
-    }
-  }, [activeToolParam]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.innerWidth < 1024) {
-      const timer = setTimeout(() => {
-        workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 80);
-      return () => clearTimeout(timer);
-    }
-  }, [activeTool]);
-
-  const selectTool = (id: ToolId) => {
-    setActiveTool(id);
-    router.push(`/tools?tool=${id}`);
-  };
+export default function ToolsDirectoryPage() {
+  const categories = ["PDF", "Image", "Text"] as const;
 
   return (
     <main className="min-h-screen bg-[#0a0a0f] text-white">
@@ -97,70 +37,65 @@ function ToolsContent() {
         </div>
       </nav>
 
-      <div className="mx-auto max-w-7xl flex flex-col lg:flex-row gap-6 p-5">
-        {/* Sidebar Selector */}
-        <aside className="w-full lg:w-72 shrink-0 space-y-5">
-          <div className="rounded-2xl border border-white/10 bg-[#121220] p-4">
-            <h2 className="text-sm font-bold text-white/40 mb-3 px-2 uppercase tracking-wider">Document Tools</h2>
-            <div className="space-y-1">
-              {TOOLS_LIST.map((tool) => {
-                const Icon = tool.icon;
-                const isSelected = activeTool === tool.id;
-                return (
-                  <button
-                    key={tool.id}
-                    onClick={() => selectTool(tool.id)}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs font-bold transition-all ${
-                      isSelected
-                        ? "bg-brand text-white shadow-lg shadow-brand/20"
-                        : "text-white/60 hover:bg-white/5 hover:text-white"
-                    }`}
-                  >
-                    <Icon size={14} className={isSelected ? "text-white" : "text-white/40"} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate">{tool.name}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </aside>
+      {/* Hero Section */}
+      <section className="mx-auto max-w-4xl text-center px-5 py-12 md:py-20 space-y-4">
+        <h1 className="text-3xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-white/90 to-white/40 bg-clip-text text-transparent">
+          Free Document & Image Utilities
+        </h1>
+        <p className="text-sm md:text-base text-white/60 max-w-xl mx-auto leading-relaxed">
+          100% private, client-side tools processed securely directly inside your browser. No files are ever sent to a server.
+        </p>
+      </section>
 
-        {/* Workspace Card */}
-        <section ref={workspaceRef} className="flex-1 min-w-0">
-          <div className="rounded-2xl border border-white/10 bg-[#121220] p-6 md:p-8 shadow-2xl min-h-[500px] flex flex-col">
-            <div className="border-b border-white/10 pb-4 mb-6">
-              <h1 className="text-2xl font-black">{TOOLS_LIST.find(t => t.id === activeTool)?.name}</h1>
-              <p className="text-xs text-white/55 mt-1">{TOOLS_LIST.find(t => t.id === activeTool)?.desc}</p>
-            </div>
+      {/* Main Grid Content */}
+      <div className="mx-auto max-w-5xl px-5 pb-20 space-y-12">
+        {categories.map((cat) => {
+          const catTools = TOOLS_LIST.filter((t) => t.category === cat);
+          if (!catTools.length) return null;
 
-            <div className="flex-1 flex flex-col justify-center">
-              <ActiveToolWorkspace toolId={activeTool} />
+          return (
+            <div key={cat} className="space-y-4">
+              <h2 className="text-xs font-bold text-white/40 uppercase tracking-widest border-b border-white/5 pb-2">
+                {cat} Tools
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {catTools.map((tool) => {
+                  const Icon = tool.icon;
+                  return (
+                    <Link
+                      key={tool.id}
+                      href={`/tools/${tool.id}`}
+                      className="group flex gap-4 p-5 rounded-2xl border border-white/5 bg-[#121220] hover:border-white/10 hover:bg-[#151528] transition-all duration-200"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-white/75 group-hover:bg-brand group-hover:text-white transition-colors duration-200">
+                        <Icon size={18} />
+                      </div>
+                      <div className="space-y-1 min-w-0">
+                        <h3 className="text-sm font-bold text-white group-hover:text-brand transition-colors duration-200 flex items-center gap-1.5">
+                          {tool.name}
+                          <span className="text-[10px] text-white/30 font-normal group-hover:translate-x-0.5 transition-transform duration-200">➔</span>
+                        </h3>
+                        <p className="text-xs text-white/50 leading-relaxed line-clamp-2">
+                          {tool.desc}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </section>
+          );
+        })}
       </div>
     </main>
-  );
-}
-
-export default function ToolsPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center">
-        <Loader2 className="animate-spin text-brand" size={32} />
-      </div>
-    }>
-      <ToolsContent />
-    </Suspense>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Workspace Dispatcher Component
 // ─────────────────────────────────────────────────────────────────────────────
-function ActiveToolWorkspace({ toolId }: { toolId: ToolId }) {
+export function ActiveToolWorkspace({ toolId }: { toolId: ToolId }) {
   switch (toolId) {
     case "pdf-to-jpg": return <PdfToJpgTool />;
     case "jpg-to-pdf": return <JpgToPdfTool />;
