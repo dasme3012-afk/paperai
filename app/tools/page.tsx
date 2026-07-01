@@ -921,35 +921,65 @@ function ImageConverterTool() {
 function CropImageTool() {
   const [file, setFile] = useState<File | null>(null);
   const [imgUrl, setImgUrl] = useState("");
-  // Simple sliders crop boundaries (percentage of width/height)
-  const [cropLeft, setCropLeft] = useState(10);
-  const [cropRight, setCropRight] = useState(10);
-  const [cropTop, setCropTop] = useState(10);
-  const [cropBottom, setCropBottom] = useState(10);
+  const [cropBox, setCropBox] = useState({ x: 15, y: 15, w: 70, h: 70 });
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setStartPos({ x, y });
+    setCropBox({ x, y, w: 0, h: 0 });
+    setIsDrawing(true);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDrawing) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const currX = ((e.clientX - rect.left) / rect.width) * 100;
+    const currY = ((e.clientY - rect.top) / rect.height) * 100;
+
+    const x = Math.max(0, Math.min(100, Math.min(startPos.x, currX)));
+    const y = Math.max(0, Math.min(100, Math.min(startPos.y, currY)));
+    const w = Math.max(0, Math.min(100 - x, Math.abs(startPos.x - currX)));
+    const h = Math.max(0, Math.min(100 - y, Math.abs(startPos.y - currY)));
+
+    setCropBox({ x, y, w, h });
+  };
+
+  const handleMouseUp = () => {
+    setIsDrawing(false);
+    if (cropBox.w < 2 || cropBox.h < 2) {
+      setCropBox({ x: 15, y: 15, w: 70, h: 70 });
+    }
+  };
 
   const crop = () => {
+    if (!file) return;
     const img = new Image();
     img.src = imgUrl;
     img.onload = () => {
-      const leftPx = Math.round(img.width * (cropLeft / 100));
-      const rightPx = Math.round(img.width * (cropRight / 100));
-      const topPx = Math.round(img.height * (cropTop / 100));
-      const bottomPx = Math.round(img.height * (cropBottom / 100));
+      const leftPx = Math.round(img.width * (cropBox.x / 100));
+      const topPx = Math.round(img.height * (cropBox.y / 100));
+      const widthPx = Math.round(img.width * (cropBox.w / 100));
+      const heightPx = Math.round(img.height * (cropBox.h / 100));
 
-      const newWidth = img.width - leftPx - rightPx;
-      const newHeight = img.height - topPx - bottomPx;
-
-      if (newWidth <= 0 || newHeight <= 0) { toast.error("Invalid crop boundaries."); return; }
+      if (widthPx <= 0 || heightPx <= 0) {
+        toast.error("Invalid crop selection.");
+        return;
+      }
 
       const canvas = document.createElement("canvas");
-      canvas.width = newWidth;
-      canvas.height = newHeight;
+      canvas.width = widthPx;
+      canvas.height = heightPx;
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        ctx.drawImage(img, leftPx, topPx, newWidth, newHeight, 0, 0, newWidth, newHeight);
+        ctx.drawImage(img, leftPx, topPx, widthPx, heightPx, 0, 0, widthPx, heightPx);
         const a = document.createElement("a");
-        a.href = canvas.toDataURL(file?.type || "image/jpeg");
-        a.download = `cropped_${file?.name}`;
+        a.href = canvas.toDataURL(file.type || "image/jpeg");
+        a.download = `cropped_${file.name}`;
         a.click();
       }
     };
@@ -957,46 +987,57 @@ function CropImageTool() {
 
   if (file) {
     return (
-      <div className="space-y-6 max-w-sm mx-auto">
-        <div className="relative aspect-video border border-white/10 rounded-xl overflow-hidden bg-black/40">
-          <img src={imgUrl} alt="" className="w-full h-full object-contain" />
-          {/* Overlay representing the crop area */}
+      <div className="space-y-6 max-w-3xl mx-auto flex flex-col items-center w-full">
+        {/* Large Crop Canvas Workspace */}
+        <div
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          className="relative w-full max-h-[60vh] border border-white/10 rounded-2xl overflow-hidden bg-black/40 cursor-crosshair select-none flex items-center justify-center"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imgUrl} alt="" className="max-w-full max-h-[60vh] object-contain pointer-events-none" />
+
+          {/* Dynamic Selection Overlay Box */}
           <div
             style={{
               position: "absolute",
-              top: `${cropTop}%`,
-              left: `${cropLeft}%`,
-              right: `${cropRight}%`,
-              bottom: `${cropBottom}%`,
+              top: `${cropBox.y}%`,
+              left: `${cropBox.x}%`,
+              width: `${cropBox.w}%`,
+              height: `${cropBox.h}%`,
               border: "2px dashed #3b82f6",
-              boxShadow: "0 0 0 9999px rgba(0,0,0,0.5)",
-              pointerEvents: "none"
+              boxShadow: "0 0 0 9999px rgba(0,0,0,0.65)",
+              pointerEvents: "none",
+              zIndex: 10
             }}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 text-xs font-bold text-white/60">
-          <div className="space-y-1">
-            <label htmlFor="crop-l">Crop Left: {cropLeft}%</label>
-            <input id="crop-l" type="range" min="0" max="45" value={cropLeft} onChange={(e) => setCropLeft(parseInt(e.target.value))} className="w-full accent-brand" />
-          </div>
-          <div className="space-y-1">
-            <label htmlFor="crop-r">Crop Right: {cropRight}%</label>
-            <input id="crop-r" type="range" min="0" max="45" value={cropRight} onChange={(e) => setCropRight(parseInt(e.target.value))} className="w-full accent-brand" />
-          </div>
-          <div className="space-y-1">
-            <label htmlFor="crop-t">Crop Top: {cropTop}%</label>
-            <input id="crop-t" type="range" min="0" max="45" value={cropTop} onChange={(e) => setCropTop(parseInt(e.target.value))} className="w-full accent-brand" />
-          </div>
-          <div className="space-y-1">
-            <label htmlFor="crop-b">Crop Bottom: {cropBottom}%</label>
-            <input id="crop-b" type="range" min="0" max="45" value={cropBottom} onChange={(e) => setCropBottom(parseInt(e.target.value))} className="w-full accent-brand" />
+          >
+            {/* Crop handles inside the selection box */}
+            <div className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full" />
+            <div className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full" />
+            <div className="absolute bottom-0 left-0 -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full" />
+            <div className="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full" />
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <button onClick={() => { setFile(null); URL.revokeObjectURL(imgUrl); }} className="flex-1 text-xs border border-white/10 hover:bg-white/5 py-2.5 rounded-lg cursor-pointer">Back</button>
-          <button onClick={crop} className="flex-1 bg-brand py-2.5 rounded-lg text-xs font-bold cursor-pointer hover:brightness-110 flex items-center justify-center gap-1"><Download size={13} /> Crop & Save</button>
+        <div className="text-center text-xs text-white/50">
+          💡 Click and drag your mouse on the image to draw a new crop area.
+        </div>
+
+        <div className="flex gap-4 w-full max-w-md">
+          <button
+            onClick={() => { setFile(null); URL.revokeObjectURL(imgUrl); }}
+            className="flex-1 text-xs border border-white/10 hover:bg-white/5 py-2.5 rounded-xl cursor-pointer font-bold transition-all"
+          >
+            Back
+          </button>
+          <button
+            onClick={crop}
+            className="flex-1 bg-brand py-2.5 rounded-xl text-xs font-bold cursor-pointer hover:brightness-110 flex items-center justify-center gap-1.5 transition-all"
+          >
+            <Download size={13} /> Crop & Save
+          </button>
         </div>
       </div>
     );
