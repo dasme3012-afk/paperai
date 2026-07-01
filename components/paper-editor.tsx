@@ -23,7 +23,7 @@ import {
   Download, Heading1, Heading2, Heading3, ImagePlus, Italic, Strikethrough,
   List, ListOrdered, RotateCcw, RotateCw, Save, Table2, Grid3X3,
   UnderlineIcon, ZoomIn, ZoomOut, PanelLeftClose, PanelLeftOpen,
-  SeparatorHorizontal, Minus, Printer, Sparkles, MoreVertical, Loader2
+  SeparatorHorizontal, Minus, Printer, Sparkles, MoreVertical, Loader2, GraduationCap
 } from "lucide-react";
 import { toast } from "sonner";
 import type { PaperPage, PaperProject } from "@/lib/types";
@@ -66,6 +66,38 @@ export function PaperEditor({ project, demoMode = false }: Props) {
   const [pageOrientation, setPageOrientation] = useState<"portrait" | "landscape">(project.pageOrientation || "portrait");
   const [showWatermark, setShowWatermark] = useState(true);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showHeaderModal, setShowHeaderModal] = useState(false);
+  const [schoolName, setSchoolName] = useState("");
+  const [examName, setExamName] = useState("");
+  const [subject, setSubject] = useState("");
+  const [timeAllowed, setTimeAllowed] = useState("2 Hours");
+  const [maxMarks, setMaxMarks] = useState("100");
+
+  const insertHeader = () => {
+    const html = `
+      <div style="border: 2px solid #111827; padding: 16px; margin-bottom: 24px; border-radius: 4px; font-family: sans-serif; background-color: #ffffff;">
+        <h1 style="text-align: center; margin: 0 0 6px 0; font-size: 18px; font-weight: bold; text-transform: uppercase; color: #111827; border: none; letter-spacing: 0.5px;">${schoolName || "NAME OF THE SCHOOL / INSTITUTION"}</h1>
+        <h2 style="text-align: center; margin: 0 0 16px 0; font-size: 13px; font-weight: bold; color: #4b5563; border: none;">${examName || "EXAMINATION - 2026"}</h2>
+        <table class="borderless" style="width: 100%; border-collapse: collapse; margin: 0;">
+          <tbody>
+            <tr style="border: none;">
+              <td style="border: none; padding: 4px 0; width: 33%; font-size: 11px; color: #111827;"><strong>Subject:</strong> ${subject || "________________"}</td>
+              <td style="border: none; padding: 4px 0; width: 33%; font-size: 11px; text-align: center; color: #111827;"><strong>Time Allowed:</strong> ${timeAllowed || "_______"}</td>
+              <td style="border: none; padding: 4px 0; width: 33%; font-size: 11px; text-align: right; color: #111827;"><strong>Max Marks:</strong> ${maxMarks || "___"}</td>
+            </tr>
+            <tr style="border: none;">
+              <td style="border: none; padding: 4px 0; font-size: 11px; color: #111827;"><strong>Student Name:</strong> ____________________________</td>
+              <td style="border: none; padding: 4px 0; font-size: 11px; text-align: center; color: #111827;"><strong>Roll No:</strong> ______________</td>
+              <td style="border: none; padding: 4px 0; font-size: 11px; text-align: right; color: #111827;"><strong>Date:</strong> ____/____/______</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #111827;" />
+    `;
+    editor?.chain().focus().insertContent(html).run();
+    setShowHeaderModal(false);
+  };
 
   // Show original panel by default
 
@@ -585,6 +617,7 @@ export function PaperEditor({ project, demoMode = false }: Props) {
         {/* Image / Tables */}
         <TB label="Image URL" onClick={() => { const u = window.prompt("Image URL"); if (u) editor?.chain().focus().setImage({ src: u }).run(); }}><ImagePlus size={14} /></TB>
         <TB label="Insert Table" onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}><Table2 size={14} /></TB>
+        <TB label="Insert School/Exam Header Template" onClick={() => setShowHeaderModal(true)}><GraduationCap size={14} /></TB>
 
         {/* Advanced Table Operations (Visible when table is active) */}
         {editor?.isActive("table") && (
@@ -750,6 +783,94 @@ export function PaperEditor({ project, demoMode = false }: Props) {
             )}
           </div>
         </div>
+        
+        {/* Exam Header Template Modal popup overlay */}
+        {showHeaderModal && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#151525] p-5 shadow-2xl space-y-4">
+              <div className="text-center">
+                <GraduationCap className="mx-auto text-blue-400 mb-1" size={32} />
+                <h3 className="text-sm font-black text-white">Insert Exam Header</h3>
+                <p className="text-[10px] text-white/50">Inject a standard printable heading table for this paper</p>
+              </div>
+
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-white/60 mb-1" htmlFor="hdr-school">School / Institution Name</label>
+                  <input
+                    id="hdr-school"
+                    type="text"
+                    value={schoolName}
+                    onChange={(e) => setSchoolName(e.target.value)}
+                    placeholder="e.g. St. Xavier High School"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 outline-none focus:border-brand text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-white/60 mb-1" htmlFor="hdr-exam">Exam Title</label>
+                  <input
+                    id="hdr-exam"
+                    type="text"
+                    value={examName}
+                    onChange={(e) => setExamName(e.target.value)}
+                    placeholder="e.g. Mid-Term Examination - 2026"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 outline-none focus:border-brand text-xs text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-1">
+                    <label className="block text-[10px] font-bold text-white/60 mb-1" htmlFor="hdr-subj">Subject</label>
+                    <input
+                      id="hdr-subj"
+                      type="text"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="e.g. Math"
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 outline-none focus:border-brand text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-white/60 mb-1" htmlFor="hdr-time">Time</label>
+                    <input
+                      id="hdr-time"
+                      type="text"
+                      value={timeAllowed}
+                      onChange={(e) => setTimeAllowed(e.target.value)}
+                      placeholder="2 Hours"
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 outline-none focus:border-brand text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-white/60 mb-1" htmlFor="hdr-marks">Marks</label>
+                    <input
+                      id="hdr-marks"
+                      type="text"
+                      value={maxMarks}
+                      onChange={(e) => setMaxMarks(e.target.value)}
+                      placeholder="80"
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 outline-none focus:border-brand text-xs text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowHeaderModal(false)}
+                  className="flex-1 text-xs border border-white/10 hover:bg-white/5 py-2 rounded-lg cursor-pointer text-white/80 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={insertHeader}
+                  className="flex-1 bg-brand py-2 rounded-lg text-xs font-bold cursor-pointer hover:brightness-110 text-white"
+                >
+                  Insert Header
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
