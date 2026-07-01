@@ -49,11 +49,9 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) { toast.error(error.message); setLoading(false); }
       else { toast.success("Signed in!"); window.location.href = "/dashboard"; }
-    } catch (err) {
+    } catch (err: any) {
       setLoading(false);
-      console.warn("Auth failed:", err);
-      toast.success("Demo Mode: Logging in as Guest!");
-      setTimeout(() => { window.location.href = "/dashboard"; }, 1000);
+      toast.error(err?.message || "Sign in failed. Please try again.");
     }
   }
 
@@ -74,11 +72,9 @@ export default function LoginPage() {
       if (error) { toast.error(error.message); }
       else if (data.session) { toast.success("Account created!"); window.location.href = "/dashboard"; }
       else { switchView("check-email"); }
-    } catch (err) {
+    } catch (err: any) {
       setLoading(false);
-      console.warn("Sign up failed:", err);
-      toast.success("Demo Mode: Logging in as Guest!");
-      setTimeout(() => { window.location.href = "/dashboard"; }, 1000);
+      toast.error(err?.message || "Sign up failed. Please try again.");
     }
   }
 
@@ -145,11 +141,9 @@ export default function LoginPage() {
         }
       });
       if (error) { toast.error(error.message); setLoading(false); }
-    } catch (err) {
+    } catch (err: any) {
       setLoading(false);
-      console.warn("Google sign in failed:", err);
-      toast.success("Demo Mode: Logging in as Guest!");
-      setTimeout(() => { window.location.href = "/dashboard"; }, 1000);
+      toast.error(err?.message || "Google sign in failed. Please try again.");
     }
   }
 

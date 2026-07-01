@@ -65,7 +65,8 @@ async function extractWithGoogleVision(buffer: Buffer): Promise<string> {
 export async function extractAndFormatPage(
   buffer: Buffer,
   mimeType: string,
-  language: string
+  language: string,
+  sourceUrl?: string
 ): Promise<{ ocrText: string; html: string }> {
   const visionApiKey = process.env.Google_Vision_ApI;
   const openaiApiKey = process.env.OPENAI_API_KEY;
@@ -75,11 +76,10 @@ export async function extractAndFormatPage(
     try {
       log.info("Using primary workflow: Google Vision + GPT-4o-mini");
       const ocrText = await withRetry(() => extractWithGoogleVision(buffer), "Google Vision OCR");
-      const html = await withRetry(() => formatQuestionPaper(ocrText, language), "OpenAI Formatting");
+      const html = await withRetry(() => formatQuestionPaper(ocrText, language, sourceUrl), "OpenAI Formatting");
       return { ocrText, html };
     } catch (error) {
       log.warn("Primary workflow failed, falling back to Gemini", { error: String(error) });
-      // Fallback to Gemini automatically handled below
     }
   }
 
@@ -87,27 +87,29 @@ export async function extractAndFormatPage(
   const geminiApiKey = process.env.GOOGLE_AI_STUDIO_API_KEY;
   if (geminiApiKey) {
     log.info("Using fallback workflow: Gemini 2.5 single-pass");
-    return extractAndFormatGemini(buffer, mimeType, language);
+    return extractAndFormatGemini(buffer, mimeType, language, sourceUrl);
   }
 
   log.info("Using fallback workflow: OpenAI single-pass");
-  return extractAndFormatOpenAI(buffer, mimeType, language);
+  return extractAndFormatOpenAI(buffer, mimeType, language, sourceUrl);
 }
 
-// Legacy text-only formatter (used in the two-step workflow)
-export async function formatQuestionPaper(ocrText: string, language: string) {
+// Text-only formatter (used in the two-step workflow)
+export async function formatQuestionPaper(ocrText: string, language: string, sourceUrl?: string) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return formatWithGoogleAiStudio(ocrText, language);
   }
   const client = new OpenAI({ apiKey });
-  // Switched default to gpt-4o-mini as requested
   const model = process.env.OPENAI_FORMATTING_MODEL ?? "gpt-4o-mini";
+  const imgInstruction = sourceUrl
+    ? `\nIMPORTANT: When you encounter descriptions of diagrams, charts, graphs, images, or illustrations in the OCR text, insert this exact img tag: <img src="${sourceUrl}" alt="Source page image" style="max-width:100%;margin:12px auto;display:block;border:1px solid #e5e7eb;border-radius:4px;" />`
+    : "\nFor any diagrams, charts, graphs, images, or illustrations, insert the exact text [DIAGRAM HERE].";
   const response = await client.chat.completions.create({
     model,
     temperature: 0.1,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: SYSTEM_PROMPT + imgInstruction },
       { role: "user", content: `Language hint: ${language}\n\nOCR TEXT:\n${ocrText}` }
     ]
   });
@@ -119,19 +121,24 @@ export async function formatQuestionPaper(ocrText: string, language: string) {
 async function extractAndFormatGemini(
   buffer: Buffer,
   mimeType: string,
-  language: string
+  language: string,
+  sourceUrl?: string
 ): Promise<{ ocrText: string; html: string }> {
-  return withRetry(() => _extractAndFormatGemini(buffer, mimeType, language), "Gemini OCR");
+  return withRetry(() => _extractAndFormatGemini(buffer, mimeType, language, sourceUrl), "Gemini OCR");
 }
 
 async function _extractAndFormatGemini(
   buffer: Buffer,
   mimeType: string,
-  language: string
+  language: string,
+  sourceUrl?: string
 ): Promise<{ ocrText: string; html: string }> {
   const apiKey = process.env.GOOGLE_AI_STUDIO_API_KEY!;
-  // Use flash for speed; only fall back to pro if env overrides
   const model = process.env.GOOGLE_AI_STUDIO_MODEL ?? "gemini-2.5-flash";
+
+  const diagramInstruction = sourceUrl
+    ? `- For any diagrams, charts, graphs, images, or illustrations, insert this exact img tag: <img src="${sourceUrl}" alt="Source page image" style="max-width:100%;margin:12px auto;display:block;border:1px solid #e5e7eb;border-radius:4px;" />`
+    : "- For any diagrams, charts, graphs, images, or illustrations, insert the exact text [DIAGRAM HERE].";
 
   const prompt = [
     "You are an expert OCR and document formatter for school exam papers.",
@@ -145,8 +152,9 @@ async function _extractAndFormatGemini(
     "- MCQ options A B C D: put in a 2-column borderless table <table class='borderless'><tr><td>(A)...</td><td>(B)...</td></tr></table>",
     "- Preserve all tables with <table><thead><tbody><tr><th><td>.",
     "- For horizontal dividing lines, use an <hr> tag.",
-    "- For any diagrams, charts, graphs, images, or illustrations, insert the exact text [DIAGRAM HERE].",
+    diagramInstruction,
     "- If the original text or numerals are in a specific language (like Marathi or Hindi), preserve them EXACTLY. DO NOT translate numerals to English.",
+    "- Preserve any watermarks, colored backgrounds, or visual styling by describing them in comments.",
     "- Do NOT add any boxes or content that is not visible in the image.",
     "- Correct obvious OCR mistakes but never change academic meaning.",
     "Return ONLY the HTML. No markdown fences, no explanations."
@@ -198,26 +206,32 @@ async function _extractAndFormatGemini(
 async function extractAndFormatOpenAI(
   buffer: Buffer,
   mimeType: string,
-  language: string
+  language: string,
+  sourceUrl?: string
 ): Promise<{ ocrText: string; html: string }> {
-  return withRetry(() => _extractAndFormatOpenAI(buffer, mimeType, language), "OpenAI OCR");
+  return withRetry(() => _extractAndFormatOpenAI(buffer, mimeType, language, sourceUrl), "OpenAI OCR");
 }
 
 async function _extractAndFormatOpenAI(
   buffer: Buffer,
   mimeType: string,
-  language: string
+  language: string,
+  sourceUrl?: string
 ): Promise<{ ocrText: string; html: string }> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("No AI API key configured.");
   const client = new OpenAI({ apiKey });
   const imageUrl = `data:${mimeType};base64,${buffer.toString("base64")}`;
 
+  const imgInstruction = sourceUrl
+    ? `\nIMPORTANT: When you see diagrams, charts, graphs, images, or illustrations, insert this exact img tag: <img src="${sourceUrl}" alt="Source page image" style="max-width:100%;margin:12px auto;display:block;border:1px solid #e5e7eb;border-radius:4px;" />`
+    : "";
+
   const response = await client.chat.completions.create({
     model: "gpt-4o",
     temperature: 0,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: SYSTEM_PROMPT + imgInstruction },
       {
         role: "user",
         content: [

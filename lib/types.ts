@@ -20,6 +20,8 @@ export type PaperProject = {
   status: "draft" | "processing" | "ready" | "failed";
   language: "auto" | "en" | "hi" | "mr";
   pages: PaperPage[];
+  pageSize?: "a4" | "letter" | "legal";
+  pageOrientation?: "portrait" | "landscape";
   created_at: string;
   updated_at: string;
 };

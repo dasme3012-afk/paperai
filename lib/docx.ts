@@ -1,6 +1,6 @@
-import { AlignmentType, Document, HeadingLevel, ImageRun, Packer, Paragraph, TextRun } from "docx";
+import { AlignmentType, Document, HeadingLevel, ImageRun, Packer, PageOrientation, Paragraph, TextRun } from "docx";
 
-export async function htmlToDocxBuffer(html: string, title: string) {
+export async function htmlToDocxBuffer(html: string, title: string, pageSize?: string, pageOrientation?: string) {
   const blocks = await htmlToDocxBlocks(html);
 
   const doc = new Document({
@@ -10,7 +10,12 @@ export async function htmlToDocxBuffer(html: string, title: string) {
       default: {
         document: {
           run: {
-            font: "Arial"
+            font: {
+              ascii: "Arial",
+              hAnsi: "Arial",
+              eastAsia: "Arial",
+              cs: "Mangal"
+            }
           }
         }
       }
@@ -19,6 +24,11 @@ export async function htmlToDocxBuffer(html: string, title: string) {
       {
         properties: {
           page: {
+            size: {
+              orientation: pageOrientation === "landscape" ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT,
+              width: pageSize === "letter" ? 12240 : pageSize === "legal" ? 12240 : 11906,
+              height: pageSize === "letter" ? 15840 : pageSize === "legal" ? 20160 : 16838,
+            },
             margin: { top: 720, right: 720, bottom: 720, left: 720 }
           }
         },

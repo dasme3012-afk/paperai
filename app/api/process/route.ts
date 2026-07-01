@@ -103,7 +103,7 @@ export async function POST(request: Request) {
               let html = "";
               try {
                 if (normalized.sourceType === "image") {
-                  ({ ocrText, html } = await extractAndFormatPage(normalized.buffer, normalized.mimeType, language));
+                  ({ ocrText, html } = await extractAndFormatPage(normalized.buffer, normalized.mimeType, language, publicUrlStr));
                 } else {
                   ocrText = "PDF page";
                   html = `<p>PDF page ${index + 1} uploaded.</p>`;

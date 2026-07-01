@@ -44,7 +44,11 @@ const FONT_FAMILIES = [
   { name: "Garamond", value: "Garamond, serif" },
   { name: "Comic Sans MS", value: "Comic Sans MS" },
   { name: "Consolas", value: "Consolas, monospace" },
-  { name: "Helvetica", value: "Helvetica, Arial, sans-serif" }
+  { name: "Helvetica", value: "Helvetica, Arial, sans-serif" },
+  { name: "Mangal (Marathi/Hindi)", value: "Mangal, serif" },
+  { name: "Kruti Dev (Hindi)", value: "Kruti Dev 010, sans-serif" },
+  { name: "Nirmala UI", value: "Nirmala UI, sans-serif" },
+  { name: "Aparajita", value: "Aparajita, serif" }
 ];
 
 
@@ -58,6 +62,8 @@ export function PaperEditor({ project, demoMode = false }: Props) {
   const [rotation, setRotation] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [showOriginal, setShowOriginal] = useState(true);
+  const [pageSize, setPageSize] = useState<"a4" | "letter" | "legal">(project.pageSize || "a4");
+  const [pageOrientation, setPageOrientation] = useState<"portrait" | "landscape">(project.pageOrientation || "portrait");
 
   // Show original panel by default
 
@@ -144,7 +150,7 @@ export function PaperEditor({ project, demoMode = false }: Props) {
     const res = await fetch(`/api/projects/${project.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, pages: currentPages })
+      body: JSON.stringify({ title, pages: currentPages, pageSize, pageOrientation })
     });
     setSaving(false);
     if (!res.ok) { toast.error("Save failed."); return; }
@@ -163,7 +169,7 @@ export function PaperEditor({ project, demoMode = false }: Props) {
       filename: `${title}.pdf`, margin: 12,
       image: { type: "jpeg", quality: 0.96 },
       html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+      jsPDF: { unit: "mm", format: pageSize, orientation: pageOrientation }
     }).from(container).save();
     if (!demoMode) await fetch("/api/downloads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ projectId: project.id, type: "pdf" }) });
     setExporting(null);
@@ -173,7 +179,7 @@ export function PaperEditor({ project, demoMode = false }: Props) {
     setExporting("docx");
     const currentPages = flushChanges();
     const combined = currentPages.map((p) => p.html).join('<div style="page-break-after:always"></div>');
-    const res = await fetch("/api/export/docx", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, html: combined }) });
+    const res = await fetch("/api/export/docx", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, html: combined, pageSize, pageOrientation }) });
     if (!res.ok) { toast.error("DOCX export failed."); setExporting(null); return; }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -227,6 +233,24 @@ export function PaperEditor({ project, demoMode = false }: Props) {
   const activeHighlight = editor?.getAttributes("highlight").color || "#ffffff";
   const isBorderlessTable = editor?.isActive("table", { class: "borderless" });
 
+  // Compute dynamic dimensions for the editor canvas
+  let canvasWidth = 800;
+  let canvasHeight = 1130;
+  
+  if (pageSize === "letter") {
+    canvasWidth = 816;
+    canvasHeight = 1056;
+  } else if (pageSize === "legal") {
+    canvasWidth = 816;
+    canvasHeight = 1344;
+  }
+  
+  if (pageOrientation === "landscape") {
+    const temp = canvasWidth;
+    canvasWidth = canvasHeight;
+    canvasHeight = temp;
+  }
+
   return (
     <div className="flex flex-col" style={{ height: "100vh", minHeight: 600, background: "#1a1a2a" }}>
 
@@ -252,6 +276,29 @@ export function PaperEditor({ project, demoMode = false }: Props) {
             {showOriginal ? <PanelLeftClose size={13} /> : <PanelLeftOpen size={13} />}
             <span>{showOriginal ? "Hide Original" : "Show Original"}</span>
           </button>
+
+          <div className="w-px h-4 bg-white/10 mx-1" />
+          
+          <select
+            value={pageSize}
+            onChange={(e) => { setPageSize(e.target.value as any); setDirty(true); }}
+            style={{ background: "#1b1b2f", border: "1px solid rgba(255,255,255,0.15)" }}
+            className="h-7 px-1.5 text-xs text-white rounded outline-none cursor-pointer focus:border-blue-500"
+          >
+            <option value="a4">A4</option>
+            <option value="letter">Letter</option>
+            <option value="legal">Legal</option>
+          </select>
+          
+          <select
+            value={pageOrientation}
+            onChange={(e) => { setPageOrientation(e.target.value as any); setDirty(true); }}
+            style={{ background: "#1b1b2f", border: "1px solid rgba(255,255,255,0.15)" }}
+            className="h-7 px-1.5 text-xs text-white rounded outline-none cursor-pointer focus:border-blue-500"
+          >
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Landscape</option>
+          </select>
 
           <div className="w-px h-4 bg-white/10 mx-1" />
 
@@ -515,15 +562,15 @@ export function PaperEditor({ project, demoMode = false }: Props) {
               style={{
                 background: "#ffffff",
                 color: "#111827",
-                maxWidth: 800,
-                minHeight: 1100,
+                maxWidth: canvasWidth,
+                minHeight: canvasHeight,
                 margin: "0 auto",
                 padding: "56px 64px",
                 boxShadow: "0 8px 40px rgba(0,0,0,0.5)",
                 borderRadius: 2,
                 position: "relative"
               }}
-              className="a4-page-content"
+              className="page-content"
             >
               {/* Page indicator */}
               <div style={{ position: "absolute", top: 10, right: 14, fontSize: 10, color: "#9ca3af", fontFamily: "monospace", userSelect: "none" }}>

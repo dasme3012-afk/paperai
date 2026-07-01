@@ -52,12 +52,9 @@ export function LoginModal({ isOpen, onClose }: Props) {
         onClose();
         window.location.reload();
       }
-    } catch (err) {
+    } catch (err: any) {
       setLoading(false);
-      console.warn("Auth failed:", err);
-      toast.success("Demo Mode: Logging in as Guest!");
-      onClose();
-      setTimeout(() => { window.location.href = "/dashboard"; }, 1000);
+      toast.error(err?.message || "Sign in failed. Please try again.");
     }
   }
 
@@ -94,12 +91,9 @@ export function LoginModal({ isOpen, onClose }: Props) {
       } else {
         switchView("check-email");
       }
-    } catch (err) {
+    } catch (err: any) {
       setLoading(false);
-      console.warn("Sign up failed:", err);
-      toast.success("Demo Mode: Logging in as Guest!");
-      onClose();
-      setTimeout(() => { window.location.href = "/dashboard"; }, 1000);
+      toast.error(err?.message || "Sign up failed. Please try again.");
     }
   }
 
@@ -187,12 +181,9 @@ export function LoginModal({ isOpen, onClose }: Props) {
         toast.error(error.message);
         setLoading(false);
       }
-    } catch (err) {
+    } catch (err: any) {
       setLoading(false);
-      console.warn("Google sign in failed:", err);
-      toast.success("Demo Mode: Logging in as Guest!");
-      onClose();
-      setTimeout(() => { window.location.href = "/dashboard"; }, 1000);
+      toast.error(err?.message || "Google sign in failed. Please try again.");
     }
   }
 

@@ -13,8 +13,9 @@ const STRIP_SELF_CLOSING_RE = /<(script|iframe|object|embed|form|input|textarea|
 // Event handler attributes (on*)
 const EVENT_HANDLERS_RE = /\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi;
 
-// javascript: and data: URLs in href/src/action attributes
-const DANGEROUS_URLS_RE = /\s+(href|src|action)\s*=\s*(?:"(?:javascript|data|vbscript):[^"]*"|'(?:javascript|data|vbscript):[^']*')/gi;
+// javascript: and vbscript: URLs in href/src/action attributes (allow https: and data: for images in src)
+const DANGEROUS_URLS_RE = /\s+(href|action)\s*=\s*(?:"(?:javascript|data|vbscript):[^"]*"|'(?:javascript|data|vbscript):[^']*')/gi;
+const DANGEROUS_SRC_RE = /\s+src\s*=\s*(?:"(?:javascript|vbscript):[^"]*"|'(?:javascript|vbscript):[^']*')/gi;
 
 // style attributes with expression() or url() pointing to javascript:
 const DANGEROUS_STYLES_RE = /\s+style\s*=\s*"[^"]*(?:expression|javascript|vbscript)\s*\([^"]*"/gi;
@@ -31,8 +32,11 @@ export function sanitizeHtml(html: string): string {
   // Remove event handlers (onclick, onerror, onload, etc.)
   sanitized = sanitized.replace(EVENT_HANDLERS_RE, "");
 
-  // Remove javascript:/data:/vbscript: URLs
+  // Remove javascript:/data:/vbscript: URLs from href/action
   sanitized = sanitized.replace(DANGEROUS_URLS_RE, "");
+
+  // Remove javascript:/vbscript: URLs from src (allow https: and data: for images)
+  sanitized = sanitized.replace(DANGEROUS_SRC_RE, "");
 
   // Remove dangerous style expressions
   sanitized = sanitized.replace(DANGEROUS_STYLES_RE, "");

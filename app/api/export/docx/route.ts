@@ -12,6 +12,8 @@ export const runtime = "nodejs";
 const schema = z.object({
   title: z.string().min(1).max(500),
   html: z.string().min(1).max(512_000), // 500KB max HTML input
+  pageSize: z.string().optional(),
+  pageOrientation: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -32,7 +34,7 @@ export async function POST(request: Request) {
 
     // Sanitize HTML before processing
     const sanitizedHtml = sanitizeHtml(input.html);
-    const buffer = await htmlToDocxBuffer(sanitizedHtml, input.title);
+    const buffer = await htmlToDocxBuffer(sanitizedHtml, input.title, input.pageSize, input.pageOrientation);
 
     const durationMs = Date.now() - startTime;
     trackExport({ type: "docx", success: true, durationMs });
