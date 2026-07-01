@@ -1,105 +1,42 @@
-import { AlignmentType, Document, HeadingLevel, ImageRun, Packer, PageOrientation, Paragraph, TextRun } from "docx";
+// @ts-expect-error missing types for html-to-docx
+import HTMLtoDOCX from "html-to-docx";
 
 export async function htmlToDocxBuffer(html: string, title: string, pageSize?: string, pageOrientation?: string) {
-  const blocks = await htmlToDocxBlocks(html);
+  const orientation = pageOrientation === "landscape" ? "landscape" : "portrait";
+  
+  // Create a styled HTML document that includes the necessary CSS for tables and alignment
+  const styledHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, "Mangal", sans-serif; color: #111827; }
+          h1 { text-align: center; font-size: 24pt; font-weight: bold; }
+          h2 { font-size: 18pt; font-weight: bold; }
+          h3 { font-size: 14pt; font-weight: bold; }
+          p { margin-bottom: 8pt; }
+          .marks { float: right; font-weight: bold; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 12pt; }
+          td, th { border: 1px solid #d1d5db; padding: 6pt; vertical-align: middle; }
+          th { background-color: #f9fafb; font-weight: bold; }
+          table.borderless td, table.borderless th { border: none !important; }
+          .page-break { page-break-after: always; clear: both; }
+          img { max-width: 100%; }
+        </style>
+      </head>
+      <body>
+        ${html}
+      </body>
+    </html>
+  `;
 
-  const doc = new Document({
-    creator: "PaperAI",
+  const buffer = await HTMLtoDOCX(styledHtml, null, {
     title,
-    styles: {
-      default: {
-        document: {
-          run: {
-            font: {
-              ascii: "Arial",
-              hAnsi: "Arial",
-              eastAsia: "Arial",
-              cs: "Mangal"
-            }
-          }
-        }
-      }
-    },
-    sections: [
-      {
-        properties: {
-          page: {
-            size: {
-              orientation: pageOrientation === "landscape" ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT,
-              width: pageSize === "letter" ? 12240 : pageSize === "legal" ? 12240 : 11906,
-              height: pageSize === "letter" ? 15840 : pageSize === "legal" ? 20160 : 16838,
-            },
-            margin: { top: 720, right: 720, bottom: 720, left: 720 }
-          }
-        },
-        children: blocks.length ? blocks : [new Paragraph("")]
-      }
-    ]
+    orientation,
+    margins: { top: 720, right: 720, bottom: 720, left: 720 },
+    font: "Arial",
   });
 
-  return Packer.toBuffer(doc);
-}
-
-async function htmlToDocxBlocks(html: string) {
-  const normalized = html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi, "\n[[IMAGE:$1]]\n")
-    .replace(/<\/(p|h1|h2|h3|li|tr)>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
-
-  const blocks: Paragraph[] = [];
-  const lines = normalized.split(/\n+/).map((line) => line.trim()).filter(Boolean);
-
-  for (const [index, line] of lines.entries()) {
-    const imageMatch = line.match(/^\[\[IMAGE:(.+)\]\]$/);
-    if (imageMatch) {
-      const image = await fetchImage(imageMatch[1]);
-      if (image) {
-        blocks.push(
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 180 },
-            children: [
-              new ImageRun({
-                data: image,
-                transformation: {
-                  width: 520,
-                  height: 280
-                }
-              })
-            ]
-          })
-        );
-        continue;
-      }
-    }
-
-    const trimmed = line.trim();
-    blocks.push(new Paragraph({
-      heading: index === 0 ? HeadingLevel.HEADING_1 : undefined,
-      alignment: index === 0 ? AlignmentType.CENTER : AlignmentType.LEFT,
-      spacing: { after: 180 },
-      children: [new TextRun({ text: trimmed || " ", bold: index === 0 })]
-    }));
-  }
-
-  return blocks;
-}
-
-async function fetchImage(src: string) {
-  try {
-    if (src.startsWith("data:")) {
-      return Buffer.from(src.split(",")[1] ?? "", "base64");
-    }
-
-    const response = await fetch(src);
-    if (!response.ok) return null;
-    return Buffer.from(await response.arrayBuffer());
-  } catch {
-    return null;
-  }
+  return buffer;
 }

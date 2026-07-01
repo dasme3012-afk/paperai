@@ -162,14 +162,16 @@ export function PaperEditor({ project, demoMode = false }: Props) {
     const html2pdf = (await import("html2pdf.js")).default;
     const currentPages = flushChanges();
     const container = document.createElement("div");
-    container.innerHTML = currentPages.map((p) => p.html).join('<div style="page-break-after:always"></div>');
+    container.innerHTML = currentPages.map((p) => p.html).join('<div class="html2pdf__page-break"></div>');
     container.className = "editor-content";
-    container.style.cssText = "color:#111827;font-size:15px;line-height:1.7;";
+    container.style.cssText = "color:#111827;font-size:15px;line-height:1.7; padding: 10px;";
     await html2pdf().set({
-      filename: `${title}.pdf`, margin: 12,
-      image: { type: "jpeg", quality: 0.96 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: "mm", format: pageSize, orientation: pageOrientation }
+      filename: `${title}.pdf`, 
+      margin: 10,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: "mm", format: pageSize, orientation: pageOrientation },
+      pagebreak: { mode: ['css', 'legacy'] }
     }).from(container).save();
     if (!demoMode) await fetch("/api/downloads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ projectId: project.id, type: "pdf" }) });
     setExporting(null);
@@ -205,8 +207,23 @@ export function PaperEditor({ project, demoMode = false }: Props) {
         <head>
           <title>${title}</title>
           <style>
-            body { font-family: sans-serif; padding: 20px; }
-            .page-break { page-break-after: always; }
+            body { font-family: ${activeFontFamily}, sans-serif; padding: 40px; color: #111827; font-size: 15px; line-height: 1.7; }
+            .page-break { page-break-after: always; clear: both; }
+            h1 { font-size: 24px; font-weight: 800; text-align: center; margin-bottom: 16px; }
+            h2 { margin-top: 18px; margin-bottom: 8px; font-size: 18px; font-weight: 750; }
+            h3 { margin-top: 14px; margin-bottom: 6px; font-size: 15px; font-weight: 700; }
+            p { line-height: 1.45; margin-bottom: 2px; }
+            .marks { float: right; font-weight: bold; }
+            ul { list-style-type: disc; margin-left: 20px; margin-bottom: 10px; padding-left: 10px; }
+            ol { list-style-type: decimal; margin-left: 24px; margin-bottom: 10px; padding-left: 10px; }
+            li { margin-bottom: 4px; line-height: 1.45; }
+            table { width: 100%; border-collapse: collapse; margin-top: 12px; margin-bottom: 12px; }
+            td, th { border: 1px solid #d1d5db; padding: 8px 12px; vertical-align: middle; }
+            th { background-color: #f9fafb; font-weight: bold; }
+            table.borderless, table.borderless tr, table.borderless td { border: none !important; padding: 4px 8px !important; background: transparent !important; }
+            img { max-width: 100%; margin: 16px auto; border-radius: 4px; display: block; }
+            div[data-type="pageBreak"] { page-break-after: always; clear: both; height: 0; border: none; }
+            @page { size: ${pageSize} ${pageOrientation}; margin: 20mm; }
           </style>
         </head>
         <body>
