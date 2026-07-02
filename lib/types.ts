@@ -5,6 +5,7 @@ export type PaperPage = {
   sourceType: "image" | "pdf";
   ocrText: string;
   html: string;
+  hasWatermark?: boolean;
   diagrams: Array<{
     id: string;
     placeholder: string;

@@ -739,8 +739,8 @@ export function PaperEditor({ project, demoMode = false }: Props) {
               }}
               className="page-content"
             >
-              {/* Original Watermark Overlay */}
-              {showWatermark && active?.sourceUrl && active.sourceType === "image" && (
+              {/* Original Watermark Overlay — only when AI detected a real watermark */}
+              {showWatermark && active?.sourceUrl && active.sourceType === "image" && active.hasWatermark && (
                 <div
                   style={{
                     position: "absolute",

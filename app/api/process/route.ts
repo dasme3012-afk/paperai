@@ -8,6 +8,101 @@ import { getClientIp, validateUploadedFile, errorResponse } from "@/lib/api-util
 import { log } from "@/lib/logger";
 import { trackOcr, captureException } from "@/lib/monitoring";
 import type { PaperPage } from "@/lib/types";
+import sharp from "sharp";
+
+// ─── Diagram Cropping & Watermark Parsing ─────────────────────────────────────
+
+const DIAGRAM_REGEX = /<!--DIAGRAM:(\{[^}]+\})-->/g;
+const WATERMARK_REGEX = /<!--WATERMARK:(true|false)-->/;
+
+async function processDiagramMarkers(
+  html: string,
+  sourceBuffer: Buffer,
+  mimeType: string,
+  userId: string,
+  projectId: string,
+  pageId: string,
+  supabase: ReturnType<typeof createServiceSupabase>
+): Promise<{ html: string; hasWatermark: boolean }> {
+  // 1. Extract watermark flag
+  const watermarkMatch = html.match(WATERMARK_REGEX);
+  const hasWatermark = watermarkMatch ? watermarkMatch[1] === "true" : false;
+  // Remove the watermark marker from HTML
+  let processedHtml = html.replace(WATERMARK_REGEX, "").trim();
+
+  // 2. Extract diagram markers
+  const diagramMatches = [...processedHtml.matchAll(DIAGRAM_REGEX)];
+  if (!diagramMatches.length) {
+    return { html: processedHtml, hasWatermark };
+  }
+
+  // Get source image dimensions
+  let imgWidth: number, imgHeight: number;
+  try {
+    const metadata = await sharp(sourceBuffer).metadata();
+    imgWidth = metadata.width || 1800;
+    imgHeight = metadata.height || 2400;
+  } catch {
+    imgWidth = 1800;
+    imgHeight = 2400;
+  }
+
+  // 3. Process each diagram marker: crop → upload → replace
+  for (let i = 0; i < diagramMatches.length; i++) {
+    const match = diagramMatches[i];
+    const fullMarker = match[0];
+    let desc = "Diagram";
+
+    try {
+      const coords = JSON.parse(match[1]);
+      desc = coords.desc || "Diagram";
+
+      // Convert percentages to pixels with small padding
+      const pad = 2; // 2% padding
+      const top = Math.max(0, Math.floor(((coords.top || 0) - pad) / 100 * imgHeight));
+      const left = Math.max(0, Math.floor(((coords.left || 0) - pad) / 100 * imgWidth));
+      const width = Math.min(imgWidth - left, Math.ceil(((coords.width || 20) + pad * 2) / 100 * imgWidth));
+      const height = Math.min(imgHeight - top, Math.ceil(((coords.height || 20) + pad * 2) / 100 * imgHeight));
+
+      if (width < 20 || height < 20) throw new Error("Crop region too small");
+
+      // Crop with sharp
+      const croppedBuffer = await sharp(sourceBuffer)
+        .extract({ left, top, width, height })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+
+      // Upload cropped diagram to Supabase
+      const diagramPath = `${userId}/${projectId}/diagram-${pageId}-${i}.jpg`;
+      let diagramUrl = "";
+
+      try {
+        const upload = await supabase.storage.from("paper-sources").upload(diagramPath, croppedBuffer, {
+          contentType: "image/jpeg",
+          upsert: true
+        });
+        if (upload.error) throw upload.error;
+        const { data: publicUrl } = supabase.storage.from("paper-sources").getPublicUrl(diagramPath);
+        diagramUrl = publicUrl.publicUrl;
+      } catch {
+        // Fallback: embed as data URI
+        diagramUrl = `data:image/jpeg;base64,${croppedBuffer.toString("base64")}`;
+      }
+
+      // Replace marker with figure element
+      const figureHtml = `<figure style="text-align:center;margin:16px auto;max-width:90%;"><img src="${diagramUrl}" alt="${desc}" style="max-width:100%;border:1px solid #e5e7eb;border-radius:4px;display:block;margin:0 auto;" /><figcaption style="font-size:0.8em;color:#888;margin-top:6px;font-style:italic;">${desc}</figcaption></figure>`;
+      processedHtml = processedHtml.replace(fullMarker, figureHtml);
+
+    } catch (err) {
+      // Fallback: replace marker with text description
+      log.warn(`Diagram cropping failed for diagram ${i}`, { error: String(err) });
+      const fallbackHtml = `<div style="text-align:center;margin:16px auto;padding:24px;border:2px dashed #d1d5db;border-radius:8px;color:#6b7280;font-style:italic;">📊 ${desc}</div>`;
+      processedHtml = processedHtml.replace(fullMarker, fallbackHtml);
+    }
+  }
+
+  return { html: processedHtml, hasWatermark };
+}
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -132,9 +227,14 @@ export async function POST(request: Request) {
 
               let ocrText = "";
               let html = "";
+              let hasWatermark = false;
               try {
                 if (normalized.sourceType === "image") {
                   ({ ocrText, html } = await extractAndFormatPage(normalized.buffer, normalized.mimeType, language, publicUrlStr));
+                  // Process diagram markers (crop + upload) and parse watermark flag
+                  const processed = await processDiagramMarkers(html, normalized.buffer, normalized.mimeType, user.id, projectId, pageId, supabase);
+                  html = processed.html;
+                  hasWatermark = processed.hasWatermark;
                 } else {
                   ocrText = "PDF page";
                   html = `<p>PDF page ${index + 1} uploaded.</p>`;
@@ -158,6 +258,7 @@ export async function POST(request: Request) {
                 sourceType: normalized.sourceType,
                 ocrText,
                 html,
+                hasWatermark,
                 diagrams: (html.match(/\[DIAGRAM HERE\]/g) ?? []).map((_, diagramIndex) => ({
                   id: crypto.randomUUID(),
                   placeholder: `[DIAGRAM HERE ${diagramIndex + 1}]`,

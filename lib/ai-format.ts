@@ -28,7 +28,7 @@ async function withRetry<T>(
   throw new Error(`${label} failed after ${maxRetries} retries`);
 }
 
-// ─── Two-step: Google Vision OCR → OpenAI Formatting ─────────────────────────
+// ─── Google Vision OCR ───────────────────────────────────────────────────────
 
 async function extractWithGoogleVision(buffer: Buffer): Promise<string> {
   const apiKey = process.env.Google_Vision_ApI;
@@ -71,156 +71,88 @@ export async function extractAndFormatPage(
   const visionApiKey = process.env.Google_Vision_ApI;
   const openaiApiKey = process.env.OPENAI_API_KEY;
 
-  // Primary workflow: Google Vision + OpenAI
+  // Primary workflow: Google Vision OCR → OpenAI formatting with vision
   if (visionApiKey && openaiApiKey) {
     try {
-      log.info("Using primary workflow: Google Vision + GPT-4o-mini");
+      log.info("Using primary workflow: Google Vision OCR + OpenAI formatting");
       const ocrText = await withRetry(() => extractWithGoogleVision(buffer), "Google Vision OCR");
-      const html = await withRetry(() => formatQuestionPaper(ocrText, language, sourceUrl), "OpenAI Formatting");
+      const html = await withRetry(() => formatQuestionPaper(ocrText, language, sourceUrl, buffer, mimeType), "OpenAI Formatting");
       return { ocrText, html };
     } catch (error) {
       log.warn("Primary workflow failed, falling back to OpenAI single-pass", { error: String(error) });
     }
   }
 
-  log.info("Using fallback workflow: OpenAI single-pass");
-  return extractAndFormatOpenAI(buffer, mimeType, language, sourceUrl);
+  // Fallback: OpenAI single-pass (image → HTML)
+  if (openaiApiKey) {
+    log.info("Using fallback workflow: OpenAI single-pass");
+    return extractAndFormatOpenAI(buffer, mimeType, language, sourceUrl);
+  }
+
+  throw new Error("No AI API keys configured. Set OPENAI_API_KEY and Google_Vision_ApI.");
 }
 
-// Text-only formatter (used in the two-step workflow)
-export async function formatQuestionPaper(ocrText: string, language: string, sourceUrl?: string) {
+// ─── Two-step formatter: OCR text + image → HTML ────────────────────────────
+
+export async function formatQuestionPaper(
+  ocrText: string,
+  language: string,
+  sourceUrl?: string,
+  imageBuffer?: Buffer,
+  imageMimeType?: string
+) {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return formatWithGoogleAiStudio(ocrText, language);
-  }
+  if (!apiKey) throw new Error("OPENAI_API_KEY is required");
   const client = new OpenAI({ apiKey });
   const model = process.env.OPENAI_FORMATTING_MODEL ?? "gpt-4o-mini";
-  
-  const imgInstruction = sourceUrl
-    ? `\nIMPORTANT: Look at the attached image. Identify where diagrams, charts, graphs, figures, or visual illustrations are located. You MUST insert this exact img tag at the corresponding location in the HTML structure: <img src="${sourceUrl}" alt="Source page image" style="max-width:100%;margin:12px auto;display:block;border:1px solid #e5e7eb;border-radius:4px;" />`
-    : "\nFor any diagrams, charts, graphs, images, or illustrations, insert the exact text [DIAGRAM HERE].";
 
   const messages: any[] = [
-    { role: "system", content: SYSTEM_PROMPT + imgInstruction }
+    { role: "system", content: SYSTEM_PROMPT }
   ];
 
-  if (sourceUrl && (sourceUrl.startsWith("http") || sourceUrl.startsWith("data:"))) {
-    messages.push({
-      role: "user",
-      content: [
-        {
-          type: "text",
-          text: `Here is the raw OCR text extracted from the document:\n\n${ocrText}\n\nLanguage hint: ${language}.\nFormat this OCR text into clean HTML. Look at the attached image to locate where diagrams, illustrations, math drawings, or figures are positioned and embed the img tags exactly where they belong in the sequence of questions.`
-        },
-        {
-          type: "image_url",
-          image_url: {
-            url: sourceUrl
-          }
-        }
-      ]
-    });
-  } else {
-    messages.push({
-      role: "user",
-      content: `Language hint: ${language}\n\nOCR TEXT:\n${ocrText}`
-    });
+  // Build user message: always include OCR text
+  const userParts: any[] = [];
+
+  // Determine if we can send the image for vision
+  const hasImage = imageBuffer && imageMimeType;
+  const hasSourceUrl = sourceUrl && (sourceUrl.startsWith("http") || sourceUrl.startsWith("data:"));
+
+  let userText = `Here is the raw OCR text extracted from the document:\n\n${ocrText}\n\nLanguage hint: ${language}.\n\nFormat this OCR text into clean HTML following all the rules in the system prompt.`;
+
+  if (hasImage || hasSourceUrl) {
+    userText += `\n\nAn image of the original page is attached. Use it to:
+1. Identify where diagrams, charts, graphs, figures, or illustrations appear.
+2. For EACH diagram you find, output this exact marker at the correct location in the HTML:
+   <!--DIAGRAM:{"top":T,"left":L,"width":W,"height":H,"desc":"DESCRIPTION"}-->
+   Where T, L, W, H are approximate percentages (0-100) of the diagram's bounding box on the page, and DESCRIPTION is a brief text description of what the diagram shows.
+3. Do NOT insert any <img> tags for diagrams. Only use the <!--DIAGRAM:...--> marker.
+4. At the VERY END of your HTML output, append exactly one of these two lines:
+   <!--WATERMARK:true--> if the page has a printed watermark, school logo, institutional seal, decorative border pattern, or colored background design
+   <!--WATERMARK:false--> if the page is plain white paper, ruled/lined paper, or graph paper with no background watermark`;
   }
+
+  userParts.push({ type: "text", text: userText });
+
+  // Attach image via vision: prefer raw buffer (more reliable), fallback to URL
+  if (hasImage) {
+    const dataUri = `data:${imageMimeType};base64,${imageBuffer.toString("base64")}`;
+    userParts.push({ type: "image_url", image_url: { url: dataUri } });
+  } else if (hasSourceUrl) {
+    userParts.push({ type: "image_url", image_url: { url: sourceUrl } });
+  }
+
+  messages.push({ role: "user", content: userParts.length === 1 ? userParts[0].text : userParts });
 
   const response = await client.chat.completions.create({
     model,
     temperature: 0.1,
     messages
   });
+
   return sanitizeHtml(cleanHtml(response.choices[0]?.message.content ?? "<p></p>"));
 }
 
-// ─── Single-pass Gemini (image → HTML) ─────────────────────────────────────
-
-async function extractAndFormatGemini(
-  buffer: Buffer,
-  mimeType: string,
-  language: string,
-  sourceUrl?: string
-): Promise<{ ocrText: string; html: string }> {
-  return withRetry(() => _extractAndFormatGemini(buffer, mimeType, language, sourceUrl), "Gemini OCR");
-}
-
-async function _extractAndFormatGemini(
-  buffer: Buffer,
-  mimeType: string,
-  language: string,
-  sourceUrl?: string
-): Promise<{ ocrText: string; html: string }> {
-  const apiKey = process.env.GOOGLE_AI_STUDIO_API_KEY!;
-  const model = process.env.GOOGLE_AI_STUDIO_MODEL ?? "gemini-2.5-flash";
-
-  const diagramInstruction = sourceUrl
-    ? `- For any diagrams, charts, graphs, images, or illustrations, insert this exact img tag: <img src="${sourceUrl}" alt="Source page image" style="max-width:100%;margin:12px auto;display:block;border:1px solid #e5e7eb;border-radius:4px;" />`
-    : "- For any diagrams, charts, graphs, images, or illustrations, insert the exact text [DIAGRAM HERE].";
-
-  const prompt = [
-    "You are an expert OCR and document formatter for school exam papers.",
-    `Language hint: ${language}.`,
-    "Look at this image of a question paper page.",
-    "Extract ALL text exactly as it appears — every word, number, symbol, and mark scheme.",
-    "Output a single clean HTML document. Rules:",
-    "- Use h1 for the exam title, h2 for section headers, h3 for sub-sections.",
-    "- Use ol/li for numbered questions, ul/li for bullet points.",
-    "- Marks like [2] or (4) go inside <span class=\"marks\"> at the end of the line.",
-    "- MCQ options A B C D: put in a 2-column borderless table <table class='borderless'><tr><td>(A)...</td><td>(B)...</td></tr></table>",
-    "- Preserve all tables with <table><thead><tbody><tr><th><td>.",
-    "- For horizontal dividing lines, use an <hr> tag.",
-    diagramInstruction,
-    "- If the original text or numerals are in a specific language (like Marathi or Hindi), preserve them EXACTLY. DO NOT translate numerals to English.",
-    "- Preserve any watermarks, colored backgrounds, or visual styling by describing them in comments.",
-    "- Do NOT add any boxes or content that is not visible in the image.",
-    "- Correct obvious OCR mistakes but never change academic meaning.",
-    "Return ONLY the HTML. No markdown fences, no explanations."
-  ].join(" ");
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: prompt },
-              { inlineData: { mimeType, data: buffer.toString("base64") } }
-            ]
-          }
-        ],
-        safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-        ],
-        generationConfig: { temperature: 0, maxOutputTokens: 8192 }
-      })
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Gemini single-pass failed: ${response.status} ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  const raw = data.candidates?.[0]?.content?.parts
-    ?.map((p: { text?: string }) => p.text ?? "")
-    .join("\n") ?? "<p></p>";
-
-  const html = sanitizeHtml(cleanHtml(raw));
-  // ocrText is just the stripped-text version for storage
-  const ocrText = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-  return { ocrText, html };
-}
-
-// ─── Single-pass OpenAI (image → HTML) ──────────────────────────────────────
+// ─── Single-pass OpenAI fallback (image → HTML) ─────────────────────────────
 
 async function extractAndFormatOpenAI(
   buffer: Buffer,
@@ -238,19 +170,25 @@ async function _extractAndFormatOpenAI(
   sourceUrl?: string
 ): Promise<{ ocrText: string; html: string }> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("No AI API key configured.");
+  if (!apiKey) throw new Error("OPENAI_API_KEY is required");
   const client = new OpenAI({ apiKey });
   const imageUrl = `data:${mimeType};base64,${buffer.toString("base64")}`;
 
-  const imgInstruction = sourceUrl
-    ? `\nIMPORTANT: When you see diagrams, charts, graphs, images, or illustrations, insert this exact img tag: <img src="${sourceUrl}" alt="Source page image" style="max-width:100%;margin:12px auto;display:block;border:1px solid #e5e7eb;border-radius:4px;" />`
-    : "";
+  const diagramInstruction = `
+When you see diagrams, charts, graphs, images, or illustrations, output this marker at the corresponding location:
+<!--DIAGRAM:{"top":T,"left":L,"width":W,"height":H,"desc":"DESCRIPTION"}-->
+Where T, L, W, H are approximate percentages (0-100) of the diagram's bounding box on the page.
+Do NOT insert <img> tags for diagrams. Only use the <!--DIAGRAM:...--> marker.
+
+At the VERY END of your HTML output, append exactly one of these two lines:
+<!--WATERMARK:true--> if the page has a printed watermark, school logo, institutional seal, or decorative border
+<!--WATERMARK:false--> if the page is plain white/ruled paper with no background watermark`;
 
   const response = await client.chat.completions.create({
     model: "gpt-4o",
     temperature: 0,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT + imgInstruction },
+      { role: "system", content: SYSTEM_PROMPT + diagramInstruction },
       {
         role: "user",
         content: [
@@ -267,37 +205,6 @@ async function _extractAndFormatOpenAI(
   return { ocrText, html };
 }
 
-// ─── Legacy text→HTML (fallback) ────────────────────────────────────────────
-
-async function formatWithGoogleAiStudio(ocrText: string, language: string) {
-  const apiKey = process.env.GOOGLE_AI_STUDIO_API_KEY;
-  if (!apiKey) throw new Error("GOOGLE_AI_STUDIO_API_KEY is required.");
-  const model = process.env.GOOGLE_AI_STUDIO_MODEL ?? "gemini-2.5-flash";
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: `${SYSTEM_PROMPT}\n\nLanguage hint: ${language}\n\nOCR TEXT:\n${ocrText}` }] }],
-        safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-        ],
-        generationConfig: { temperature: 0.1 }
-      })
-    }
-  );
-
-  if (!response.ok) throw new Error(`Gemini format failed: ${response.statusText}`);
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("\n") ?? "<p></p>";
-  return sanitizeHtml(cleanHtml(text));
-}
-
 // ─── Shared ──────────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = [
@@ -306,7 +213,6 @@ const SYSTEM_PROMPT = [
   "Use h1/h2/h3 for headings, ol/li for numbered questions, ul/li for bullets.",
   "Put marks like [2] inside <span class=\"marks\">. MCQ options in 2-col borderless table.",
   "- For horizontal dividing lines, use an <hr> tag.",
-  "- For any diagrams, charts, graphs, images, or illustrations, insert the exact text [DIAGRAM HERE].",
   "- If the original text or numerals are in a specific language (like Marathi), preserve them EXACTLY. DO NOT translate numerals to English.",
   "Do NOT add any boxes or placeholder text not present in the original content.",
   "Return ONLY HTML — no markdown fences, no explanations."
