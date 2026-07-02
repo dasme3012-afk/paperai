@@ -241,8 +241,13 @@ export async function POST(request: Request) {
                 }
               } catch (err) {
                 captureException(err, { context: "ocr", fileName: file.name, pageIndex: index });
-                ocrText = `[OCR failed for ${file.name}]`;
-                html = `<h2>Page ${index + 1}</h2><p>OCR processing failed. Please try re-uploading this page.</p>`;
+                const errMsg = err instanceof Error ? err.message : String(err);
+                log.error("OCR processing failed", {
+                  fileName: file.name,
+                  pageIndex: index,
+                  error: errMsg
+                });
+                throw new Error(`OCR failed for ${file.name}: ${errMsg}`);
               }
 
               completed++;

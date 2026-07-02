@@ -134,29 +134,25 @@ export function HomeUploadZone() {
       if (!reader) throw new Error("Stream not supported");
 
       const decoder = new TextDecoder();
-      let done = false;
+      let buffer = "";
       let finalData: any = null;
 
-      while (!done) {
-        const { value, done: streamDone } = await reader.read();
-        done = streamDone;
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
         if (value) {
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n");
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.progress) setProgress(data.progress);
-                if (data.status) setProgressMsg(data.status);
-                if (data.pages) finalData = data;
-                if (data.error) throw new Error(data.error);
-              } catch (e: any) {
-                if (e.message && e.message !== "Unexpected end of JSON input") {
-                  throw e;
-                }
-              }
-            }
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() ?? "";
+
+          for (const part of parts) {
+            const line = part.split("\n").find((item) => item.startsWith("data: "));
+            if (!line) continue;
+            const data = JSON.parse(line.slice(6));
+            if (data.progress) setProgress(data.progress);
+            if (data.status) setProgressMsg(data.status);
+            if (data.pages) finalData = data;
+            if (data.error) throw new Error(data.error);
           }
         }
       }

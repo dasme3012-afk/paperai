@@ -59,9 +59,7 @@ export function UploadZone({ layout = "double" }: { layout?: "single" | "double"
       const response = await fetch("/api/process", { method: "POST", body: form });
       window.clearInterval(timer);
       timer = undefined;
-      setProgress(100);
 
-      const data = await response.json();
       if (response.status === 401) {
         toast.error("Please sign in before processing a paper.");
         router.push("/login");
@@ -69,11 +67,14 @@ export function UploadZone({ layout = "double" }: { layout?: "single" | "double"
       }
 
       if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
         toast.error(data.error ?? "Upload failed");
         setProgress(0);
         return;
       }
 
+      const data = await readProcessStream(response, setProgress);
+      setProgress(100);
       toast.success("Question paper generated.");
       router.push(`/projects/${data.projectId}`);
     } catch (error) {
@@ -270,4 +271,40 @@ async function expandPdfFiles(files: File[]) {
   }
 
   return output;
+}
+
+async function readProcessStream(
+  response: Response,
+  setProgress: (progress: number) => void
+): Promise<{ projectId: string }> {
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("Stream not supported");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalData: any = null;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
+
+    for (const part of parts) {
+      const line = part.split("\n").find((item) => item.startsWith("data: "));
+      if (!line) continue;
+      const data = JSON.parse(line.slice(6));
+      if (data.progress) setProgress(data.progress);
+      if (data.error) throw new Error(data.error);
+      if (data.projectId) finalData = data;
+    }
+  }
+
+  if (!finalData?.projectId) {
+    throw new Error("Did not receive complete data from server");
+  }
+
+  return finalData;
 }
