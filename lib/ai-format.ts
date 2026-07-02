@@ -89,7 +89,7 @@ export async function extractAndFormatPage(
     return extractAndFormatOpenAI(buffer, mimeType, language, sourceUrl);
   }
 
-  throw new Error("No AI API keys configured. Set OPENAI_API_KEY and Google_Vision_ApI.");
+  throw new Error("No AI API keys configured. Set OPENAI_API_KEY and GOOGLE_VISION_API_KEY.");
 }
 
 // ─── Two-step formatter: OCR text + image → HTML ────────────────────────────
